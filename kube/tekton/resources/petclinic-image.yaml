@@ -1,0 +1,11 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: petclinic-image
+spec:
+  params:
+  - name: url
+# NOTE: This file is pre-processed by the cicd installation script and replaces "demo-dev" with the proper
+# Demo Dev project name
+    value: image-registry.openshift-image-registry.svc:5000/demo-dev/petclinic
+  type: image

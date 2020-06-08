@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    description: The web server's http port.
+    openshift.io/generated-by: OpenShiftNewApp
+  labels:
+    app: jws31-tomcat8-basic-s2i
+    application: petclinic
+    jws31: "1.4"
+    template: jws31-tomcat8-basic-s2i
+  name: petclinic
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    deploymentConfig: petclinic
+  sessionAffinity: None
+  type: ClusterIP

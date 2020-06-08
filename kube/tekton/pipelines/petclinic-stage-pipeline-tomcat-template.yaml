@@ -1,0 +1,66 @@
+
+apiVersion: v1
+kind: Template
+metadata:
+  name: pipeline-stage-template
+  annotations:
+    openshift.io/display-name: "Staging Pipeline Template"
+    description: >-
+      Creates an apache server to act as a proxy to turn insecure https into http (with a bearer token)
+    tags: "monitoring"
+    iconClass: "fa fa-exchange"
+message: "Creating staging pipeline in $PROJECT_NAME"
+parameters:
+- description: The name of the project the pipeline will be installed to
+  displayName: Name of CI/CD project
+  name: PROJECT_NAME
+  value: petclinic-cicd
+  required: true
+- description: The name of the staging project
+  displayName: Staging Project
+  name: STAGING_PROJECT
+  value: petclinic-stage
+  required: true
+- description: The name of the development project
+  displayName: Development Project
+  name: DEVELOPMENT_PROJECT
+  value: petclinic-dev
+  required: true
+- description: The name of the staging application (or image stream)
+  displayName: Application Name (Staging)
+  name: APP_NAME
+  value: petclinic
+- description: The name of the development application (or image stream)
+  displayName: Application Name (Dev)
+  name: DEV_APP_NAME
+  value: petclinic
+objects:
+- apiVersion: tekton.dev/v1alpha1
+  kind: Pipeline
+  metadata:
+    name: petclinic-deploy-stage-tomcat
+    namespace: ${PROJECT_NAME}
+  spec:
+    params:
+      - name: IMAGE_TAG
+        default: latest 
+        type: string
+        description: The image tag to be promoted from DEV to STAGE environment
+    tasks:
+    - name: promote-stage
+      taskRef:
+        name: openshift-client
+      params:
+      - name: COMMANDS
+        value: |
+            oc tag ${DEVELOPMENT_PROJECT}/${DEV_APP_NAME}:$(params.IMAGE_TAG) ${STAGING_PROJECT}/${APP_NAME}:latest
+            oc rollout status deploymentconfig/${APP_NAME} -n ${STAGING_PROJECT}
+    - name: test
+      taskRef:
+        name: openshift-client
+      runAfter:
+        - promote-stage
+      params:
+      - name: COMMANDS
+        value: |
+            sleep $(($RANDOM % 20 + 10))
