@@ -1,0 +1,4 @@
+[submodule "spring-framework-petclinic"]
+	path = spring-framework-petclinic
+	url = https://github.com/hatmarch/spring-framework-petclinic.git
+	branch = spring-5.2.0
