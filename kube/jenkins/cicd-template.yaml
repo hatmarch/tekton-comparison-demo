@@ -39,16 +39,16 @@ parameters:
   name: ENABLE_QUAY
   required: true
 - displayName: Quay.io Username
-  description: Quay.io username to push the images to tasks-sample-app repository on your Quay.io account
+  description: Quay.io username to push the images to petclinic-sample-app repository on your Quay.io account
   name: QUAY_USERNAME
 - displayName: Quay.io Password
-  description: Quay.io password to push the images to tasks-sample-app repository on your Quay.io account
+  description: Quay.io password to push the images to petclinic-sample-app repository on your Quay.io account
   name: QUAY_PASSWORD
 - displayName: Quay.io Image Repository
-  description: Quay.io repository for pushing Tasks container images
+  description: Quay.io repository for pushing Petclinic container images
   name: QUAY_REPOSITORY
   required: true
-  value: tasks-app
+  value: petclinic-app
 objects:
 - apiVersion: v1
   groupNames: null
@@ -69,7 +69,7 @@ objects:
     labels:
       app: cicd-pipeline
       name: cicd-pipeline
-    name: tasks-pipeline
+    name: petclinic-pipeline
   spec:
     triggers:
       - type: GitHub
@@ -91,7 +91,7 @@ objects:
         - name: ENABLE_QUAY
           value: ${ENABLE_QUAY}
         jenkinsfile: |-
-          def mvnCmd = "mvn -s configuration/cicd-settings-nexus3.xml"
+          def mvnCmd = "./mvnw -s configuration/cicd-settings-nexus3.xml"
 
           pipeline {
             agent {
@@ -100,7 +100,7 @@ objects:
             stages {
               stage('Build App') {
                 steps {
-                  git branch: 'eap-7', url: 'http://gogs:3000/gogs/openshift-tasks.git'
+                  git branch: 'spring-5.2.0', url: 'http://gogs:3000/gogs/petclinic.git'
                   sh "${mvnCmd} install -DskipTests=true"
                 }
               }
@@ -124,11 +124,12 @@ objects:
               }
               stage('Build Image') {
                 steps {
-                  sh "cp target/openshift-tasks.war target/ROOT.war"
+                  // NOTE: image should already be called ROOT.war
+                  // sh "cp target/openshift-tasks.war target/ROOT.war"
                   script {
                     openshift.withCluster() {
                       openshift.withProject(env.DEV_PROJECT) {
-                        openshift.selector("bc", "tasks").startBuild("--from-file=target/ROOT.war", "--wait=true")
+                        openshift.selector("bc", "petclinic").startBuild("--from-file=target/ROOT.war", "--wait=true")
                       }
                     }
                   }
@@ -139,7 +140,7 @@ objects:
                   script {
                     openshift.withCluster() {
                       openshift.withProject(env.DEV_PROJECT) {
-                        openshift.selector("dc", "tasks").rollout().latest();
+                        openshift.selector("dc", "petclinic").rollout().latest();
                       }
                     }
                   }
@@ -161,7 +162,7 @@ objects:
                           sh "skopeo copy docker://quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest docker://quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:stage --src-creds \"$QUAY_USER:$QUAY_PWD\" --dest-creds \"$QUAY_USER:$QUAY_PWD\" --src-tls-verify=false --dest-tls-verify=false"
                         }
                       } else {
-                        openshift.tag("${env.DEV_PROJECT}/tasks:latest", "${env.STAGE_PROJECT}/tasks:stage")
+                        openshift.tag("${env.DEV_PROJECT}/petclinic:latest", "${env.STAGE_PROJECT}/petclinic:stage")
                       }
                     }
                   }
@@ -172,7 +173,7 @@ objects:
                   script {
                     openshift.withCluster() {
                       openshift.withProject(env.STAGE_PROJECT) {
-                        openshift.selector("dc", "tasks").rollout().latest();
+                        openshift.selector("dc", "petclinic").rollout().latest();
                       }
                     }
                   }
@@ -286,7 +287,7 @@ objects:
             oc label dc jenkins app=jenkins --overwrite 
 
             # setup dev env
-            oc import-image wildfly --from=openshift/wildfly-120-centos7 --confirm -n ${DEV_PROJECT} 
+            oc import-image tomcat8 --from=quay.io/mhildenb/jboss-webserver31-tomcat8-openshift-base:1.0 --confirm -n ${DEV_PROJECT} 
             
             if [ "${ENABLE_QUAY}" == "true" ] ; then
               # cicd
@@ -295,73 +296,76 @@ objects:
               
               # dev
               oc create secret docker-registry quay-cicd-secret --docker-server=quay.io --docker-username="${QUAY_USERNAME}" --docker-password="${QUAY_PASSWORD}" --docker-email=cicd@redhat.com -n ${DEV_PROJECT}
-              oc new-build --name=tasks --image-stream=wildfly:latest --binary=true --push-secret=quay-cicd-secret --to-docker --to='quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest' -n ${DEV_PROJECT}
-              oc new-app --name=tasks --docker-image=quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest --allow-missing-images -n ${DEV_PROJECT}
-              oc set triggers dc tasks --remove-all -n ${DEV_PROJECT}
-              oc patch dc tasks -p '{"spec": {"template": {"spec": {"containers": [{"name": "tasks", "imagePullPolicy": "Always"}]}}}}' -n ${DEV_PROJECT}
-              oc delete is tasks -n ${DEV_PROJECT}
+              oc new-build --name=petclinic --image-stream=tomcat8 --binary=true --push-secret=quay-cicd-secret --to-docker --to='quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest' -n ${DEV_PROJECT}
+              oc new-app --name=petclinic --docker-image=quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest --allow-missing-images -n ${DEV_PROJECT}
+              oc set triggers dc petclinic --remove-all -n ${DEV_PROJECT}
+              oc patch dc petclinic -p '{"spec": {"template": {"spec": {"containers": [{"name": "petclinic", "imagePullPolicy": "Always"}]}}}}' -n ${DEV_PROJECT}
+              oc delete is petclinic -n ${DEV_PROJECT}
               oc secrets link default quay-cicd-secret --for=pull -n ${DEV_PROJECT}
 
               
               # stage
               oc create secret docker-registry quay-cicd-secret --docker-server=quay.io --docker-username="${QUAY_USERNAME}" --docker-password="${QUAY_PASSWORD}" --docker-email=cicd@redhat.com -n ${STAGE_PROJECT}
-              oc new-app --name=tasks --docker-image=quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:stage --allow-missing-images -n ${STAGE_PROJECT}
-              oc set triggers dc tasks --remove-all -n ${STAGE_PROJECT}
-              oc patch dc tasks -p '{"spec": {"template": {"spec": {"containers": [{"name": "tasks", "imagePullPolicy": "Always"}]}}}}' -n ${STAGE_PROJECT}
-              oc delete is tasks -n ${STAGE_PROJECT}
+              oc new-app --name=petclinic --docker-image=quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:stage --allow-missing-images -n ${STAGE_PROJECT}
+              oc set triggers dc petclinic --remove-all -n ${STAGE_PROJECT}
+              oc patch dc petclinic -p '{"spec": {"template": {"spec": {"containers": [{"name": "petclinic", "imagePullPolicy": "Always"}]}}}}' -n ${STAGE_PROJECT}
+              oc delete is petclinic -n ${STAGE_PROJECT}
               oc secrets link default quay-cicd-secret --for=pull -n ${STAGE_PROJECT}
             else
               # dev
-              oc new-build --name=tasks --image-stream=wildfly:latest --binary=true -n ${DEV_PROJECT}
-              oc new-app tasks:latest --allow-missing-images -n ${DEV_PROJECT}
-              oc set triggers dc -l app=tasks --containers=tasks --from-image=tasks:latest --manual -n ${DEV_PROJECT}
+              oc new-build --name=petclinic --image-stream=tomcat8 --binary=true -n ${DEV_PROJECT}
+              oc new-app petclinic:latest --allow-missing-images -n ${DEV_PROJECT}
+              oc set triggers dc -l app=petclinic --containers=petclinic --from-image=petclinic:latest --manual -n ${DEV_PROJECT}
               
               # stage
-              oc new-app tasks:stage --allow-missing-images -n ${STAGE_PROJECT}
-              oc set triggers dc -l app=tasks --containers=tasks --from-image=tasks:stage --manual -n ${STAGE_PROJECT}
+              oc new-app petclinic:stage --allow-missing-images -n ${STAGE_PROJECT}
+              oc set triggers dc -l app=petclinic --containers=petclinic --from-image=petclinic:stage --manual -n ${STAGE_PROJECT}
             fi
             
             # dev project
-            oc expose dc/tasks --port=8080 -n ${DEV_PROJECT}
-            oc expose svc/tasks -n ${DEV_PROJECT}
+            oc expose dc/petclinic --port=8080 -n ${DEV_PROJECT}
+            oc expose svc/petclinic -n ${DEV_PROJECT}
             # enable java debugging
-            oc set env dc/tasks -n ${DEV_PROJECT} -e"JAVA_OPTS=-Xdebug -Xrunjdwp:transport=dt_socket,address=5000,server=y,suspend=n"
-            oc set probe dc/tasks --readiness --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=9 -n ${DEV_PROJECT}
-            oc set probe dc/tasks --liveness  --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=9 -n ${DEV_PROJECT}
-            oc rollout cancel dc/tasks -n ${STAGE_PROJECT}
+            oc set env dc/petclinic -n ${DEV_PROJECT} -e"JAVA_OPTS=-Xdebug -Xrunjdwp:transport=dt_socket,address=5000,server=y,suspend=n"
+            # FIXME: Add Health Checks
+            # oc set probe dc/tasks --readiness --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=9 -n ${DEV_PROJECT}
+            # oc set probe dc/tasks --liveness  --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=9 -n ${DEV_PROJECT}
+            oc rollout cancel dc/petclinic -n ${STAGE_PROJECT}
 
             # stage project
-            oc expose dc/tasks --port=8080 -n ${STAGE_PROJECT}
-            oc expose svc/tasks -n ${STAGE_PROJECT}
-            oc set probe dc/tasks --readiness --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=10 -n ${STAGE_PROJECT}
-            oc set probe dc/tasks --liveness  --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=10 -n ${STAGE_PROJECT}
-            oc rollout cancel dc/tasks -n ${DEV_PROJECT}
+            oc expose dc/petclinic --port=8080 -n ${STAGE_PROJECT}
+            oc expose svc/petclinic -n ${STAGE_PROJECT}
+            # FIXME: Add Health Checks
+            # oc set probe dc/tasks --readiness --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=10 -n ${STAGE_PROJECT}
+            # oc set probe dc/tasks --liveness  --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=10 -n ${STAGE_PROJECT}
+            oc rollout cancel dc/petclinic -n ${DEV_PROJECT}
 
-            # deploy gogs
-            HOSTNAME=$(oc get route jenkins -o template --template='{{.spec.host}}' | sed "s/jenkins-${CICD_NAMESPACE}.//g")
-            GOGS_HOSTNAME="gogs-$CICD_NAMESPACE.$HOSTNAME"
+            # # deploy gogs (FIXME: Only if necessary)
+            # HOSTNAME=$(oc get route jenkins -o template --template='{{.spec.host}}' | sed "s/jenkins-${CICD_NAMESPACE}.//g")
+            # GOGS_HOSTNAME="gogs-$CICD_NAMESPACE.$HOSTNAME"
 
-            if [ "${EPHEMERAL}" == "true" ] ; then
-            curl -s https://raw.githubusercontent.com/OpenShiftDemos/gogs-openshift-docker/master/openshift/gogs-template.yaml|sed 's#sql\:9.5#sql\:9.6#g'| oc new-app -f - \
-                  --param=GOGS_VERSION=0.11.34 \
-                  --param=HOSTNAME=$GOGS_HOSTNAME \
-                  --param=SKIP_TLS_VERIFY=true \
-                  --param=DATABASE_VERSION=latest
-            else
-            curl -s https://raw.githubusercontent.com/OpenShiftDemos/gogs-openshift-docker/master/openshift/gogs-persistent-template.yaml |sed 's#sql\:9.5#sql\:9.6#g'| oc new-app -f - \
-                  --param=GOGS_VERSION=0.11.34 \
-                  --param=HOSTNAME=$GOGS_HOSTNAME \
-                  --param=SKIP_TLS_VERIFY=true \
-                  --param=DATABASE_VERSION=latest
-            fi
+            # if [ "${EPHEMERAL}" == "true" ] ; then
+            # curl -s https://raw.githubusercontent.com/OpenShiftDemos/gogs-openshift-docker/master/openshift/gogs-template.yaml|sed 's#sql\:9.5#sql\:9.6#g'| oc new-app -f - \
+            #       --param=GOGS_VERSION=0.11.34 \
+            #       --param=HOSTNAME=$GOGS_HOSTNAME \
+            #       --param=SKIP_TLS_VERIFY=true \
+            #       --param=DATABASE_VERSION=latest
+            # else
+            # curl -s https://raw.githubusercontent.com/OpenShiftDemos/gogs-openshift-docker/master/openshift/gogs-persistent-template.yaml |sed 's#sql\:9.5#sql\:9.6#g'| oc new-app -f - \
+            #       --param=GOGS_VERSION=0.11.34 \
+            #       --param=HOSTNAME=$GOGS_HOSTNAME \
+            #       --param=SKIP_TLS_VERIFY=true \
+            #       --param=DATABASE_VERSION=latest
+            # fi
             
-            sleep 5
+            # sleep 5
 
-            if [ "${EPHEMERAL}" == "true" ] ; then
-              oc new-app -f https://raw.githubusercontent.com/siamaksade/sonarqube/master/sonarqube-template.yml --param=SONARQUBE_MEMORY_LIMIT=6Gi
-            else
-              oc new-app -f https://raw.githubusercontent.com/siamaksade/sonarqube/master/sonarqube-persistent-template.yml --param=SONARQUBE_MEMORY_LIMIT=6Gi
-            fi
+            # FIXME: Only deploy sonarqube if necessary
+            # if [ "${EPHEMERAL}" == "true" ] ; then
+            #   oc new-app -f https://raw.githubusercontent.com/siamaksade/sonarqube/master/sonarqube-template.yml --param=SONARQUBE_MEMORY_LIMIT=6Gi
+            # else
+            #   oc new-app -f https://raw.githubusercontent.com/siamaksade/sonarqube/master/sonarqube-persistent-template.yml --param=SONARQUBE_MEMORY_LIMIT=6Gi
+            # fi
 
             if [ "${DEPLOY_CHE}" == "true" ] ; then
               oc process -f https://raw.githubusercontent.com/minishift/minishift/master/addons/che/templates/che-workspace-service-account.yaml \
@@ -377,11 +381,12 @@ objects:
               oc set resources dc/che --limits=cpu=1,memory=2Gi --requests=cpu=200m,memory=512Mi
             fi
 
-            if [ "${EPHEMERAL}" == "true" ] ; then
-              oc new-app -f https://raw.githubusercontent.com/OpenShiftDemos/nexus/master/nexus3-template.yaml --param=NEXUS_VERSION=3.13.0 --param=MAX_MEMORY=2Gi
-            else
-              oc new-app -f https://raw.githubusercontent.com/OpenShiftDemos/nexus/master/nexus3-persistent-template.yaml --param=NEXUS_VERSION=3.13.0 --param=MAX_MEMORY=2Gi
-            fi
+            # FIXME: Only deploy nexus if necessary
+            # if [ "${EPHEMERAL}" == "true" ] ; then
+            #   oc new-app -f https://raw.githubusercontent.com/OpenShiftDemos/nexus/master/nexus3-template.yaml --param=NEXUS_VERSION=3.13.0 --param=MAX_MEMORY=2Gi
+            # else
+            #   oc new-app -f https://raw.githubusercontent.com/OpenShiftDemos/nexus/master/nexus3-persistent-template.yaml --param=NEXUS_VERSION=3.13.0 --param=MAX_MEMORY=2Gi
+            # fi
 
             oc set resources dc/nexus --requests=cpu=200m,memory=1Gi --limits=cpu=2,memory=4Gi 
 
@@ -411,9 +416,9 @@ objects:
 
             cat <<EOF > /tmp/data.json
             {
-              "clone_addr": "https://github.com/OpenShiftDemos/openshift-tasks.git",
+              "clone_addr": "https://github.com/hatmarch/spring-framework-petclinic.git",
               "uid": 1,
-              "repo_name": "openshift-tasks"
+              "repo_name": "petclinic"
             }
             EOF
 
@@ -421,7 +426,7 @@ objects:
             -u $GOGS_USER:$GOGS_PWD -X POST http://$GOGS_SVC:3000/api/v1/repos/migrate -d @/tmp/data.json)
 
             if [ $_RETURN != "201" ] ;then
-              echo "ERROR: Failed to import openshift-tasks GitHub repo"
+              echo "ERROR: Failed to import petclinic GitHub repo"
               cat /tmp/curl.log
               exit 255
             fi
@@ -432,7 +437,7 @@ objects:
             {
               "type": "gogs",
               "config": {
-                "url": "https://openshift.default.svc.cluster.local/oapi/v1/namespaces/$CICD_NAMESPACE/buildconfigs/tasks-pipeline/webhooks/${WEBHOOK_SECRET}/generic",
+                "url": "https://openshift.default.svc.cluster.local/oapi/v1/namespaces/$CICD_NAMESPACE/buildconfigs/petclinic-pipeline/webhooks/${WEBHOOK_SECRET}/generic",
                 "content_type": "json"
               },
               "events": [
@@ -443,7 +448,7 @@ objects:
             EOF
 
             _RETURN=$(curl -o /tmp/curl.log -sL -w "%{http_code}" -H "Content-Type: application/json" \
-            -u $GOGS_USER:$GOGS_PWD -X POST http://$GOGS_SVC:3000/api/v1/repos/gogs/openshift-tasks/hooks -d @/tmp/data.json)
+            -u $GOGS_USER:$GOGS_PWD -X POST http://$GOGS_SVC:3000/api/v1/repos/gogs/petclinic/hooks -d @/tmp/data.json)
 
             if [ $_RETURN != "201" ] ; then
               echo "ERROR: Failed to set webhook"
