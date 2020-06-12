@@ -91,7 +91,7 @@ objects:
         - name: ENABLE_QUAY
           value: ${ENABLE_QUAY}
         jenkinsfile: |-
-          def mvnCmd = "./mvnw -s configuration/cicd-settings-nexus3.xml"
+          def mvnCmd = "mvn -s /var/config/settings.xml"
 
           pipeline {
             agent {
@@ -119,7 +119,7 @@ objects:
               }
               stage('Archive App') {
                 steps {
-                  sh "${mvnCmd} deploy -DskipTests=true -P nexus3"
+                  sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-releases/ -DaltSnapshotDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-snapshots/"
                 }
               }
               stage('Build Image') {
@@ -205,7 +205,12 @@ objects:
         <workspaceVolume class="org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume">
           <memory>false</memory>
         </workspaceVolume>
-        <volumes />
+        <volumes>
+            <org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume>
+                <mountPath>/var/config</mountPath>
+                <configMapName>custom-maven-settings</configMapName>
+            </org.csanchez.jenkins.plugins.kubernetes.volumes.ConfigMapVolume>
+        </volumes>
         <containers>
           <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
             <name>jnlp</name>
