@@ -104,37 +104,49 @@ objects:
                   sh "${mvnCmd} install -DskipTests=true"
                 }
               }
-              stage('Test') {
-                steps {
-                  sh "${mvnCmd} test"
-                  step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
-                }
-              }
-              stage('Code Analysis') {
-                steps {
-                  script {
-                    sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -DskipTests=true"
+              
+              stage('Analysis and Test') {
+                parallel {
+                  stage('Test') {
+                    steps {
+                      sh "${mvnCmd} test"
+                      step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
+                    }
                   }
-                }
+                  stage('Code Analysis') {
+                    steps {
+                      script {
+                        sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -DskipTests=true"
+                      }
+                    }
+                  }
+                } 
               }
-              stage('Archive App') {
-                steps {
-                  sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-releases/ -DaltSnapshotDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-snapshots/"
-                }
-              }
-              stage('Build Image') {
-                steps {
-                  // NOTE: image should already be called ROOT.war
-                  // sh "cp target/openshift-tasks.war target/ROOT.war"
-                  script {
-                    openshift.withCluster() {
-                      openshift.withProject(env.DEV_PROJECT) {
-                        openshift.selector("bc", "petclinic").startBuild("--from-file=target/ROOT.war", "--wait=true")
+  
+              stage('Build and Archive') {
+                parallel {
+                  stage('Archive App') {
+                    steps {
+                      sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-releases/ -DaltSnapshotDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-snapshots/"
+                    }
+                  }
+                
+                  stage('Build Image') {
+                    steps {
+                      // NOTE: image should already be called ROOT.war
+                      // sh "cp target/openshift-tasks.war target/ROOT.war"
+                      script {
+                        openshift.withCluster() {
+                          openshift.withProject(env.DEV_PROJECT) {
+                            openshift.selector("bc", "petclinic").startBuild("--from-file=target/ROOT.war", "--wait=true")
+                          }
+                        }
                       }
                     }
                   }
                 }
               }
+              
               stage('Deploy DEV') {
                 steps {
                   script {
@@ -146,6 +158,7 @@ objects:
                   }
                 }
               }
+  
               stage('Promote to STAGE?') {
                 agent {
                   label 'skopeo'
@@ -154,7 +167,7 @@ objects:
                   timeout(time:15, unit:'MINUTES') {
                       input message: "Promote to STAGE?", ok: "Promote"
                   }
-
+  
                   script {
                     openshift.withCluster() {
                       if (env.ENABLE_QUAY.toBoolean()) {
