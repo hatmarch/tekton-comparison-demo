@@ -9,20 +9,20 @@ This repo contains all the scripts and code (as submodules) needed to create a d
 
 [%header,cols=2*] 
 |===
-|AWS
-|OpenShift
+|Jenkins
+|OpenShift Pipelines
 
-|Code Pipeline
-|OpenShift Pipelines (Tekton)
+|Blue Ocean
+|Pipeline Console
 
-|CodeCommit, CodeBuild
-|Gogs, Source2Image and Templates (Tomcat8)
+|OpenShift Plugin / Kubernetes PodTemplate
+|
 
-|RDS
-|Operators (MySql, Pipelines)
+|Webhooks
+|Tekton Events
 
-|Elastic Beanstalk 
-|OpenShift Developer Perspective
+|S2I binary integration
+|S2I binary integration
 |===
 
 TIP: There is a .devcontainer in this repo so if you have VisualStudio Code with remote extensions enabled, you can open repo folder in a container that has all the tools necessary to run this demo already installed.
@@ -38,15 +38,13 @@ source scripts/shell-setup.sh
 ----
 ====
 
-== OpenShift Setup ==
+== Demo Setup ==
 
 === OpenShift Pipelines (Tekton) ===
 
 Pipeline setup is inspired by this post link:https://developers.redhat.com/blog/2020/02/26/speed-up-maven-builds-in-tekton-pipelines/[here]
 
 From the instructions link:https://github.com/openshift/pipelines-tutorial/blob/master/install-operator.md[here]
-
-==== Pipelines Operator Install ====
 
 . Install subscription (in openshift operators)
 +
@@ -71,7 +69,31 @@ echo "https://$(oc get route tekton-dashboard -o jsonpath='{.spec.host}' -n open
 +
 NOTE: See also tips and tricks from the link:https://github.com/openshift/pipelines-tutorial[pipelines tutorial]
 
-oubleshooting ==
+=== Petclinic Tekton CI/CD ===
+
+NOTE: The script referenced is run during the link:docs/Walkthrough.adoc[Walkthrough].  This just gives a little more info if needed for troubleshooting
+
+A good example on how to get this running with SpringBoot is link:https://github.com/siamaksade/tekton-cd-demo[here].  This demo is heavily based on it.  link:https://developer.ibm.com/blogs/create-a-serverless-pipeline-using-newly-enhanced-tekton-features/[this] is also a good article about a number of Tekton features used in this demo (such as workspaces) including some others that aren't yet being used (e.g. conditions)
+
+Run the following script to setup the entire cicd project (it will create a project called `<PROJECT_PREFIX>-cicd` (where `<PROJECT_PREFIX>` is the value passed to --project-prefix in the command below) if it doesn't exist already to install all the artifacts into.
+
+----
+$DEMO_HOME/scripts/create-tekton-cicd.sh install --project-prefix petclinic --user USER --password <PASSWORD>
+----
+
+The `<USER>` and `<PASSWORD>` that is passed in is the user and password needed to create a pull secret for registry.redhat.io.  This is needed for the s2i images.  It will basically associate this secret with the pipelines service account.  NOTE: you can use a redhat registry server account name and password instead of your own login and password
+
+WARNING: This must be run *after* the corresponding development environment (e.g. petclinic-dev) has been created or the script will fail.  This is due to the cicd pipeline needing to update the permissions of the pipeline service account to be able to "see into and change" (e.g. edit) the dev project
+
+=== Petclinic Jenkins CI/CD ===
+
+Run this script after the the Tekton pipeline is setup
+
+----
+$DEMO_HOME/scripts/create-jenkins-cicd.sh deploy --project-prefix petclinic
+----
+
+== Troubleshooting ==
 
 === MySQL ===
 
@@ -122,21 +144,6 @@ rm -f /opt/webserver/webse*
 +
 . If all else fails, [blue]#you can run the tomcat server locally#.  
 
-=== CI/CD Project Install ===
-
-NOTE: The script referenced is run during the link:docs/Walkthrough.adoc[Walkthrough].  This just gives a little more info if needed for troubleshooting
-
-A good example on how to get this running with SpringBoot is link:https://github.com/siamaksade/tekton-cd-demo[here].  This demo is heavily based on it.  link:https://developer.ibm.com/blogs/create-a-serverless-pipeline-using-newly-enhanced-tekton-features/[this] is also a good article about a number of Tekton features used in this demo (such as workspaces) including some others that aren't yet being used (e.g. conditions)
-
-Run the following script to setup the entire cicd project (it will create a project called `<PROJECT_PREFIX>-cicd` (where `<PROJECT_PREFIX>` is the value passed to --project-prefix in the command below) if it doesn't exist already to install all the artifacts into.
-
-----
-$DEMO_HOME/scripts/create-cicd.sh install --project-prefix petclinic --user USER --password <PASSWORD>
-----
-
-The `<USER>` and `<PASSWORD>` that is passed in is the user and password needed to create a pull secret for registry.redhat.io.  This is needed for the s2i images.  It will basically associate this secret with the pipelines service account.  NOTE: you can use a redhat registry server account name and password instead of your own login and password
-
-WARNING: This must be run *after* the corresponding development environment (e.g. petclinic-dev) has been created or the script will fail.  This is due to the cicd pipeline needing to update the permissions of the pipeline service account to be able to "see into and change" (e.g. edit) the dev project
 
 === OpenShift Nexus Installation ===
 
