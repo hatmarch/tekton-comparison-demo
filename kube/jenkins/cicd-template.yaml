@@ -116,12 +116,13 @@ objects:
                   stage('Code Analysis') {
                     steps {
                       script {
+                        sh "${mvnCmd} install -DskipTests=true"
                         sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -DskipTests=true"
                       }
                     }
                   }
-                } 
-              }
+                 } 
+               }
   
               stage('Build and Archive') {
                 parallel {
@@ -193,7 +194,7 @@ objects:
                 }
               }
             }
-          }
+          }  
       type: JenkinsPipeline
 - apiVersion: v1
   kind: ConfigMap
