@@ -8,9 +8,27 @@
 # Authors:                                                      #
 # - Jorge Morales        https://github.com/jorgemoralespou     #
 # - Siamak Sadeghianfar  https://github.com/siamaksade          #
+# - Marc Hildenbrand     https://github.com/hatmarch            #
 #                                                               #
 #################################################################
 
+function add_nexus3_raw_hosted_repo() {
+  local _REPO_ID=$1
+  local _NEXUS_USER=$2
+  local _NEXUS_PWD=$3
+  local _NEXUS_URL=$4
+
+  read -r -d '' _REPO_JSON << EOM
+{
+  "name": "${_REPO_ID}",
+  "type": "groovy",
+  "content": "import org.sonatype.nexus.repository.storage.WritePolicy; import org.sonatype.nexus.blobstore.api.BlobStoreManager; repository.createRawHosted('$_REPO_ID', BlobStoreManager.DEFAULT_BLOBSTORE_NAME, true, WritePolicy.ALLOW)"
+}
+EOM
+  # Post Nexus 3.8
+  curl -v -H "Accept: application/json" -H "Content-Type: application/json" -d "$_REPO_JSON" -u "$_NEXUS_USER:$_NEXUS_PWD" "${_NEXUS_URL}/service/rest/v1/script/"
+  curl -v -X POST -H "Content-Type: text/plain" -u "$_NEXUS_USER:$_NEXUS_PWD" "${_NEXUS_URL}/service/rest/v1/script/${_REPO_ID}/run"
+}
 
 #
 # add_nexus3_repo [repo-id] [repo-url] [nexus-username] [nexus-password] [nexus-url]
@@ -139,6 +157,9 @@ done
   # wait for port-forwarding to start
   sleep 5
   NEXUS_URL=http://localhost:8081
+
+  # add a raw hosted repo for maven site artefacts
+  add_nexus3_raw_hosted_repo site $NEXUS_USER $NEXUS_PWD $NEXUS_URL
 
   delete_nexus3_repo maven-releases $NEXUS_USER $NEXUS_PWD $NEXUS_URL
   add_nexus3_hosted_repo maven-releases $NEXUS_USER $NEXUS_PWD $NEXUS_URL
