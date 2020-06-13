@@ -436,7 +436,7 @@ objects:
             {
               "clone_addr": "https://github.com/hatmarch/spring-framework-petclinic.git",
               "uid": 1,
-              "repo_name": "petclinic"
+              "repo_name": "petclinic-jenkins"
             }
             EOF
 
@@ -455,7 +455,7 @@ objects:
             {
               "type": "gogs",
               "config": {
-                "url": "https://openshift.default.svc.cluster.local/oapi/v1/namespaces/$CICD_NAMESPACE/buildconfigs/petclinic-pipeline/webhooks/${WEBHOOK_SECRET}/generic",
+                "url": "https://openshift.default.svc.cluster.local/apis/build.openshift.io/v1/namespaces/$CICD_NAMESPACE/buildconfigs/petclinic-pipeline/webhooks/${WEBHOOK_SECRET}/generic",
                 "content_type": "json"
               },
               "events": [
