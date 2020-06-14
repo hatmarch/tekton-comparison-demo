@@ -33,6 +33,10 @@ parameters:
   generate: expression
   name: WEBHOOK_SECRET
   required: true
+- description: Jenkins Gogs Repo name
+  name: GOGS_REPO_NAME
+  value: "petclinic-jenkins"
+  required: true
 - displayName: Integrate Quay.io
   description: Integrate image build and deployment with Quay.io 
   value: "false"
@@ -100,8 +104,10 @@ objects:
             stages {
               stage('Build App') {
                 steps {
-                  git branch: 'spring-5.2.0', url: 'http://gogs:3000/gogs/petclinic.git'
+                  sh "rm -rf /tmp/build-app"
+                  git branch: 'spring-5.2.0', url: 'http://gogs:3000/gogs/${GOGS_REPO_NAME}.git'
                   sh "${mvnCmd} install -DskipTests=true"
+                  sh "mkdir -p /tmp/build-app && cp target/ROOT.war /tmp/build-app/ROOT.war"
                 }
               }
               
@@ -139,7 +145,9 @@ objects:
                       script {
                         openshift.withCluster() {
                           openshift.withProject(env.DEV_PROJECT) {
-                            openshift.selector("bc", "petclinic").startBuild("--from-file=target/ROOT.war", "--wait=true")
+                            // NOTE that we are deploying a .war file we built in the first step and stored separately to 
+                            // keep other maven operations from affecting it      
+                            openshift.selector("bc", "petclinic").startBuild("--from-file=/tmp/build-app/ROOT.war", "--wait=true")
                           }
                         }
                       }
@@ -404,12 +412,11 @@ objects:
             #   oc new-app -f https://raw.githubusercontent.com/OpenShiftDemos/nexus/master/nexus3-persistent-template.yaml --param=NEXUS_VERSION=3.13.0 --param=MAX_MEMORY=2Gi
             # fi
 
-            oc set resources dc/nexus --requests=cpu=200m,memory=1Gi --limits=cpu=2,memory=4Gi 
+            # oc set resources dc/nexus --requests=cpu=200m,memory=1Gi --limits=cpu=2,memory=4Gi 
 
             GOGS_SVC=$(oc get svc gogs -o template --template='{{.spec.clusterIP}}')
             GOGS_USER=gogs
             GOGS_PWD=gogs
-            GOGS_REPO_NAME=petclinic-jenkins
 
             echo -n "Waiting for gogs to come up..."
             while true; do
@@ -435,7 +442,7 @@ objects:
             {
               "clone_addr": "https://github.com/hatmarch/spring-framework-petclinic.git",
               "uid": 1,
-              "repo_name": "$GOGS_REPO_NAME"
+              "repo_name": "${GOGS_REPO_NAME}"
             }
             EOF
 
