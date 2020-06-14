@@ -1,0 +1,34 @@
+apiVersion: tekton.dev/v1alpha1
+kind: TaskRun
+metadata:
+  generateName: s2i-tomcat-8-workspace-run-
+spec:
+  workspaces:
+  - name: maven-source
+    persistentVolumeClaim:
+      claimName: maven-source-pvc
+  inputs:
+    params:
+      - name: TLSVERIFY
+        value: 'false'
+      - name: MAVEN_MIRROR_URL
+        value: 'http://nexus:8081/repository/maven-public/'
+      - name: MAVEN_ARGS_APPEND
+        value: '-PHSQLDB'
+      # Want to do an S2I binary build, using this directory in the workspace 
+      # as the path context will cause the s2i to do the equivalent of a binary 
+      # build instead of running maven again
+      - name: PATH_CONTEXT
+        value: 'target'
+  outputs:
+    resources:
+      - name: image
+        paths:
+          - build-image/image
+        resourceRef:
+          name: petclinic-image
+  serviceAccountName: pipeline
+  taskRef:
+    kind: Task
+    name: s2i-tomcat-8-workspace
+  timeout: 1h0m0s
