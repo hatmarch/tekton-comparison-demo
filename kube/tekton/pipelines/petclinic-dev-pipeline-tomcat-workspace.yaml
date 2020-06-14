@@ -56,10 +56,16 @@ spec:
       value: $(params.MAVEN_MIRROR_URL)
     - name: MAVEN_ARGS_APPEND
       value: "-Popenshift"
+    # pointing to the target directory of a pre-built workspace will trigger a (faster) binary S2I build
+    - name: PATH_CONTEXT
+      value: target
     resources:
       outputs:
       - name: image
         resource: app-image
+    workspaces:
+    - name: maven-source
+      workspace: local-maven-source
   - name: release-app
     taskRef:
       name: maven-workspace
