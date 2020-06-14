@@ -19,25 +19,24 @@ spec:
   - apiVersion: tekton.dev/v1alpha1
     kind: PipelineRun
     metadata:
-      generateName: petclinic-dev-pipeline-tomcat-run-
+      generateName: petclinic-dev-pipeline-tomcat-workspace-triggered-run-
       labels:
-        tekton.dev/pipeline: petclinic-dev-pipeline-tomcat
+        tekton.dev/pipeline: petclinic-dev-pipeline-tomcat-workspace
     spec:
       pipelineRef:
-        name: petclinic-dev-pipeline-tomcat
+        name: petclinic-dev-pipeline-tomcat-workspace
+      params:
+      - name: GIT_REPO
+        value: $(params.gitrepositoryurl)
+      - name: GIT_REVISION
+        value: $(params.gitrevision)
+      - name: GIT_MESSAGE
+        value: $(params.message)
       resources:
-      - name: app-git
-        resourceSpec:
-          type: git
-          params:
-          - name: url
-            value: $(params.gitrepositoryurl)
-          - name: revision
-            value: $(params.gitrevision)
       - name: app-image
         resourceRef:
           name: petclinic-image
       workspaces:
-      - name: local-maven-repo
+      - name: local-maven-source
         persistentVolumeClaim:
-          claimName: maven-repo-pvc
+          claimName: maven-source-pvc

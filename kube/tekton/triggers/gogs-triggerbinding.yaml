@@ -11,3 +11,5 @@ spec:
     value: $(body.repository.clone_url)
   - name: contenttype
     value: $(header.Content-Type)
+  - name: message
+    value: $(body.commits[0].message)

@@ -10,6 +10,18 @@ spec:
       description: For local mvn files for build
       name: MAVEN_MIRROR_URL
       type: string
+    - name: GIT_REPO
+      type: string
+      description: The repo to check output
+      default: 'http://gogs:3000/gogs/spring-petclinic.git'
+    - name: GIT_REVISION
+      type: string
+      description: The branch to be built
+      default: 'spring-5.2.0'
+    - name: GIT_MESSAGE
+      type: string
+      description: The commit message of the triggered build (if any)
+      default: "<none>"
   resources:
   - name: app-image
     type: image
@@ -22,9 +34,11 @@ spec:
       workspace: local-maven-source
     params:
     - name: url
-      value: http://gogs:3000/gogs/spring-petclinic.git
+      value: $(params.GIT_REPO)
     - name: revision
-      value: spring-5.2.0
+      value: $(params.GIT_REVISION)
+    - name: message
+      value: $(params.GIT_MESSAGE)
     - name: subdirectory
       value: ""
     - name: deleteExisting

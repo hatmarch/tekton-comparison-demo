@@ -36,12 +36,17 @@ spec:
       description: clean out the contents of the repo's destination directory (if it already exists) before trying to clone the repo there
       type: string
       default: "false"
+    - name: message
+      description: the message of the commit that triggered this checkin
+      type: string
+      default: "<none>"
   steps:
   - name: clone
     image: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:latest
     script: |
       CHECKOUT_DIR="$(workspaces.output.path)/$(inputs.params.subdirectory)"
 
+      echo "Build triggered by commit: $(inputs.params.message)"
       cleandir() {
         # Delete any existing contents of the repo directory if it exists.
         #
