@@ -31,6 +31,7 @@ spec:
 
           gogs_user = "$(inputs.params.GOGS_USER)"
           gogs_pwd = "$(inputs.params.GOGS_PASSWORD)"
+          # FIXME: Webhook url could be the name of the svc with the port at the end
           webhookURL = "http://" + os.popen('oc get route webhook -o template --template="{{.spec.host}}"').read()
           gogsURL = "http://" + os.popen('oc get svc gogs -o template --template="{{.spec.clusterIP}}"').read() + ":3000"
 
