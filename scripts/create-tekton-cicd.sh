@@ -124,6 +124,8 @@ command.install() {
   oc apply -f $DEMO_HOME/kube/tekton/tasks -n $cicd_prj
   oc apply -f $DEMO_HOME/kube/config/maven-configmap.yaml -n $cicd_prj
   oc apply -f $DEMO_HOME/kube/tekton/pipelines/pipeline-pvc.yaml -n $cicd_prj
+  oc apply -f $DEMO_HOME/kube/tekton/pipelines/pipeline-source-pvc.yaml -n $cicd_prj
+
 
   info "Deploying dev and staging pipelines"
   if [[ -z "$SKIP_STAGING_PIPELINE" ]]; then
