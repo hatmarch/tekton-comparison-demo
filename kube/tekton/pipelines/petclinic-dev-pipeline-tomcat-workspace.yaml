@@ -1,0 +1,111 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: petclinic-dev-pipeline-tomcat-workspace
+spec:
+  workspaces:
+  - name: local-maven-source
+  params:
+    - default: 'http://nexus:8081/repository/maven-public/'
+      description: For local mvn files for build
+      name: MAVEN_MIRROR_URL
+      type: string
+  resources:
+  - name: app-image
+    type: image
+  tasks:
+  - name: checkout
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: local-maven-source
+    params:
+    - name: url
+      value: http://gogs:3000/gogs/spring-petclinic.git
+    - name: revision
+      value: spring-5.2.0
+    - name: subdirectory
+      value: ""
+    - name: deleteExisting
+      value: "true"
+  - name: unit-tests
+    taskRef:
+      name: maven-workspace
+    runAfter:
+      - checkout
+    workspaces:
+    - name: maven-source
+      workspace: local-maven-source
+    params:
+    - name: GOALS
+      value:
+      - package
+    - name: MAVEN_SETTINGS_CONFIGMAP
+      value: custom-maven-settings
+  - name: build-image
+    taskRef:
+      name: s2i-tomcat-8-workspace
+    runAfter:
+      - release-app
+      - code-analysis
+    params:
+    - name: TLSVERIFY
+      value: "false"
+    - name: MAVEN_MIRROR_URL
+      value: $(params.MAVEN_MIRROR_URL)
+    - name: MAVEN_ARGS_APPEND
+      value: "-Popenshift"
+    resources:
+      outputs:
+      - name: image
+        resource: app-image
+  - name: release-app
+    taskRef:
+      name: maven-workspace
+    runAfter:
+      - unit-tests
+    workspaces:
+    - name: maven-source
+      workspace: local-maven-source
+    params:
+    - name: GOALS
+      value:
+      - deploy
+      - -DskipTests=true
+      - -DaltDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-releases/
+      - -DaltSnapshotDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-snapshots/
+    - name: MAVEN_SETTINGS_CONFIGMAP
+      value: custom-maven-settings
+  - name: code-analysis
+    taskRef:
+      name: sonar
+    runAfter:
+      - unit-tests
+    workspaces:
+    - name: maven-source
+      workspace: local-maven-source
+    params:
+    - name: MAVEN_SETTINGS_CONFIGMAP
+      value: custom-maven-settings
+  # - name: deploy
+  #   taskRef:
+  #     name: openshift-client
+  #   runAfter:
+  #     - build-image
+  #   params:
+  #   - name: COMMANDS
+  #     value: |
+  #         oc scale deployment/spring-petclinic --replicas=0 -n demo-dev
+  #         oc rollout status deployment/spring-petclinic -n demo-dev
+  #         oc scale deployment/spring-petclinic --replicas=1 -n demo-dev
+  #         oc rollout status deployment/spring-petclinic -n demo-dev
+  # - name: int-test
+  #   taskRef:
+  #     name: openshift-client
+  #   runAfter:
+  #     - deploy
+  #   params:
+  #   - name: COMMANDS
+  #     value: |
+  #         sleep $(($RANDOM % 20 + 10))
