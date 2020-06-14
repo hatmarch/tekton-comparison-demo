@@ -5,7 +5,7 @@ metadata:
 spec:
   params:
   - name: url
-    value: https://github.com/hatmarch/spring-framework-petclinic.git
+    value: http://gogs:3000/gogs/spring-petclinic.git
   - name: revision
-    value: trigger-test
+    value: spring-5.2.0
   type: git
