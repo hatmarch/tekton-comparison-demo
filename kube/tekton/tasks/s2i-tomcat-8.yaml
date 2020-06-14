@@ -68,13 +68,15 @@ spec:
         - 's2i'
         - 'build'
         - '$(inputs.params.PATH_CONTEXT)'
-        - 'registry.redhat.io/jboss-webserver-3/webserver31-tomcat8-openshift:1.4'
+        - 'image-registry.openshift-image-registry.svc:5000/petclinic-cicd/tomcat8-builder'
         - '--image-scripts-url'
         - 'image:///usr/local/s2i'
         - '--as-dockerfile'
         - '/gen-source/Dockerfile.gen'
         - '--environment-file'
         - '/env-params/env-file'
+        # - '--loglevel'
+        # - '5'
       volumeMounts:
         - name: gen-source
           mountPath: /gen-source

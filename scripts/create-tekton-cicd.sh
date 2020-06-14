@@ -101,7 +101,16 @@ command.install() {
   }
 
   info "Create pull secret for redhat registry"
-  $DEMO_HOME/scripts/util-create-pull-secret.sh registry-redhat-io --project petclinic-cicd -u $USER -p $PASSWORD
+  $DEMO_HOME/scripts/util-create-pull-secret.sh registry-redhat-io --project $cicd_prj -u $USER -p $PASSWORD
+
+  # import the s2i builder image that will be used to build our petclinic app (use the local reference policy so that projects
+  # referencing this from outside this project don't need to have credentials to the source registry)
+  info "import petclinic s2i image"
+  oc import-image -n $cicd_prj tomcat8-builder --from=registry.redhat.io/jboss-webserver-3/webserver31-tomcat8-openshift:1.4 \
+    --reference-policy='local' --confirm
+
+  info "Configure service account permissions for builder"
+  oc policy add-role-to-user system:image-puller system:serviceaccount:$dev_prj:builder -n $cicd_prj
 
   info "Configure service account permissions for pipeline"
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $dev_prj
@@ -123,7 +132,7 @@ command.install() {
   else
     info "Skipping deploy to staging pipeline at user's request"
   fi
-  sed "s/demo-dev/$dev_prj/g" $DEMO_HOME/kube/tekton/pipelines/petclinic-dev-pipeline-tomcat.yaml | oc apply -f - -n $cicd_prj
+  sed "s/demo-dev/$dev_prj/g" $DEMO_HOME/kube/tekton/pipelines/petclinic-dev-pipeline-tomcat-workspace.yaml | oc apply -f - -n $cicd_prj
   
   # Install pipeline resources
   sed "s/demo-dev/$dev_prj/g" $DEMO_HOME/kube/tekton/resources/petclinic-image.yaml | oc apply -f - -n $cicd_prj
