@@ -43,7 +43,7 @@ spec:
       value: ""
     - name: deleteExisting
       value: "true"
-  - name: unit-tests
+  - name: build-app
     taskRef:
       name: maven-workspace
     runAfter:
@@ -54,14 +54,30 @@ spec:
     params:
     - name: GOALS
       value:
-      - package
+      - install
+      - -DskipTests
+    - name: MAVEN_SETTINGS_CONFIGMAP
+      value: custom-maven-settings
+  - name: unit-tests
+    taskRef:
+      name: maven-workspace
+    runAfter:
+      - build-app
+    workspaces:
+    - name: maven-source
+      workspace: local-maven-source
+    params:
+    - name: GOALS
+      value:
+      - surefire-report:report
+      - site-deploy
     - name: MAVEN_SETTINGS_CONFIGMAP
       value: custom-maven-settings
   - name: build-image
     taskRef:
       name: s2i-tomcat-8-workspace
     runAfter:
-      - release-app
+      - unit-tests
       - code-analysis
     params:
     - name: TLSVERIFY
@@ -85,6 +101,7 @@ spec:
       name: maven-workspace
     runAfter:
       - unit-tests
+      - code-analysis
     workspaces:
     - name: maven-source
       workspace: local-maven-source
@@ -101,31 +118,27 @@ spec:
     taskRef:
       name: sonar
     runAfter:
-      - unit-tests
+      - build-app
     workspaces:
     - name: maven-source
       workspace: local-maven-source
     params:
     - name: MAVEN_SETTINGS_CONFIGMAP
       value: custom-maven-settings
-  # - name: deploy
-  #   taskRef:
-  #     name: openshift-client
-  #   runAfter:
-  #     - build-image
-  #   params:
-  #   - name: COMMANDS
-  #     value: |
-  #         oc scale deployment/spring-petclinic --replicas=0 -n demo-dev
-  #         oc rollout status deployment/spring-petclinic -n demo-dev
-  #         oc scale deployment/spring-petclinic --replicas=1 -n demo-dev
-  #         oc rollout status deployment/spring-petclinic -n demo-dev
-  # - name: int-test
-  #   taskRef:
-  #     name: openshift-client
-  #   runAfter:
-  #     - deploy
-  #   params:
-  #   - name: COMMANDS
-  #     value: |
-  #         sleep $(($RANDOM % 20 + 10))
+  - name: deploy-dev
+    taskRef:
+      name: openshift-client
+    runAfter:
+      - build-image
+      - release-app
+    params:
+    - name: COMMANDS
+      value: |
+          echo "Deploying latest image of petclinic to demo-dev"
+          oc rollout latest petclinic -n demo-dev
+
+          # oldschool way to doing the above
+          # oc scale deployment/spring-petclinic --replicas=0 -n demo-dev
+          # oc rollout status deployment/spring-petclinic -n demo-dev
+          # oc scale deployment/spring-petclinic --replicas=1 -n demo-dev
+          # oc rollout status deployment/spring-petclinic -n demo-dev
