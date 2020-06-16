@@ -15,13 +15,14 @@ source scripts/shell-setup.sh
 == Tasks and Task Run == 
 
 . `Task` Show the yaml for `$DEMO_HOME/kube/tekton/tasks/s2i-tomcat-8.yaml`
+** collapse sections of the YAML to make steps more clear
 +
 . Open two terminal windows side by side
 +
 . In the second window, run the following command to show running pods that have to do with Tekton
 +
 ----
-watch -n 1 --exec oc get pods -n petclinic-dev -l app.kubernetes.io/managed-by=tekton-pipelines --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{"pod: "}{.metadata.name}{"\n"}{range .status.containerStatuses[*]}{"\tname: "}{.name}{"\tstartedAt: "}[{.state.running.startedAt},{.state.terminated.startedAt}],{"\tfinishedAt: "}{.state.terminated.finishedAt}{"\n"}{end}'
+watch -n 1 --exec oc get pods -n petclinic-cicd -l app.kubernetes.io/managed-by=tekton-pipelines --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{"pod: "}{.metadata.name}{"\n"}{range .status.containerStatuses[*]}{"\tname: "}{.name}{"\tstartedAt: "}[{.state.running.startedAt},{.state.terminated.startedAt}],{"\tfinishedAt: "}{.state.terminated.finishedAt}{"\n"}{end}'
 ----
 +
 . `TaskRun`: Show the yaml for `$DEMO_HOME/kube/tekton/taskrun/s2i-tomcat-8-run.yaml`
@@ -35,8 +36,13 @@ oc create -f $DEMO_HOME/kube/tekton/taskrun/s2i-tomcat-8-run.yaml -n petclinic-c
 . Now run the following command to follow the logs
 +
 ----
-tkn taskrun logs -L -r
+tkn taskrun logs -L -f
 ----
++
+. Switch to the 
++
+. Wait until logs indicate that the build is done
++
 
 == Pipelines and PipelineRun ==
 
