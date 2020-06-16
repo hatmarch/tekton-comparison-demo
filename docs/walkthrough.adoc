@@ -1,0 +1,293 @@
+= Tekton Comparison Demo: Jenkins vs. Tekton =
+:experimental:
+:toc:
+:toclevels: 4
+
+[WARNING]
+====
+Make sure you run the following command before executing any of these commands listed in this demo.
+
+----
+source scripts/shell-setup.sh 
+----
+====
+
+== Tasks and Task Run == 
+
+. `Task` Show the yaml for `$DEMO_HOME/kube/tekton/tasks/s2i-tomcat-8.yaml`
++
+. Open two terminal windows side by side
++
+. In the second window, run the following command to show running pods that have to do with Tekton
++
+----
+watch -n 1 --exec oc get pods -n petclinic-dev -l app.kubernetes.io/managed-by=tekton-pipelines --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{"pod: "}{.metadata.name}{"\n"}{range .status.containerStatuses[*]}{"\tname: "}{.name}{"\tstartedAt: "}[{.state.running.startedAt},{.state.terminated.startedAt}],{"\tfinishedAt: "}{.state.terminated.finishedAt}{"\n"}{end}'
+----
++
+. `TaskRun`: Show the yaml for `$DEMO_HOME/kube/tekton/taskrun/s2i-tomcat-8-run.yaml`
++
+. In the first terminal window, run the following create command to start the task
++
+----
+oc create -f $DEMO_HOME/kube/tekton/taskrun/s2i-tomcat-8-run.yaml -n petclinic-cicd
+----
++
+. Now run the following command to follow the logs
++
+----
+tkn taskrun logs -L -r
+----
+
+== Pipelines and PipelineRun ==
+
+
+== Demo Setup ==
+
+=== OpenShift Pipelines (Tekton) ===
+
+Pipeline setup is inspired by this post link:https://developers.redhat.com/blog/2020/02/26/speed-up-maven-builds-in-tekton-pipelines/[here]
+
+From the instructions link:https://github.com/openshift/pipelines-tutorial/blob/master/install-operator.md[here]
+
+. Install subscription (in openshift operators)
++
+----
+oc apply -f $DEMO_HOME/kube/tekton/tekton-subscription.yaml
+----
++
+. Optionally install tekton dashboard (for visualization) as per link:https://github.com/tektoncd/dashboard[here]
++
+----
+oc apply -f $DEMO_HOME/kube/tekton/openshift-tekton-dashboard-release.yaml
+oc wait --for=condition=Available deployment/tekton-dashboard -n openshift-pipelines
+----
++
+. Then you can open the dashboard by hitting this URL.  It will authenticate using OpenShift oauth
++
+----
+echo "https://$(oc get route tekton-dashboard -o jsonpath='{.spec.host}' -n openshift-pipelines)/"
+----
++
+. When the operator has finished installing, it will install a pipeline service account in all projects that have sufficient permissions to build stuff.  There is also a centralized openshift-pipelines project that holds pipeline supporting pods.  
++
+NOTE: See also tips and tricks from the link:https://github.com/openshift/pipelines-tutorial[pipelines tutorial]
+
+=== Petclinic Tekton CI/CD ===
+
+NOTE: The script referenced is run during the link:docs/Walkthrough.adoc[Walkthrough].  This just gives a little more info if needed for troubleshooting
+
+A good example on how to get this running with SpringBoot is link:https://github.com/siamaksade/tekton-cd-demo[here].  This demo is heavily based on it.  link:https://developer.ibm.com/blogs/create-a-serverless-pipeline-using-newly-enhanced-tekton-features/[this] is also a good article about a number of Tekton features used in this demo (such as workspaces) including some others that aren't yet being used (e.g. conditions)
+
+Run the following script to setup the entire cicd project (it will create a project called `<PROJECT_PREFIX>-cicd` (where `<PROJECT_PREFIX>` is the value passed to --project-prefix in the command below) if it doesn't exist already to install all the artifacts into.
+
+----
+$DEMO_HOME/scripts/create-tekton-cicd.sh install --project-prefix petclinic --user USER --password <PASSWORD>
+----
+
+The `<USER>` and `<PASSWORD>` that is passed in is the user and password needed to create a pull secret for registry.redhat.io.  This is needed for the s2i images.  It will basically associate this secret with the pipelines service account.  NOTE: you can use a redhat registry server account name and password instead of your own login and password
+
+WARNING: This must be run *after* the corresponding development environment (e.g. petclinic-dev) has been created or the script will fail.  This is due to the cicd pipeline needing to update the permissions of the pipeline service account to be able to "see into and change" (e.g. edit) the dev project
+
+=== Petclinic Jenkins CI/CD ===
+
+Run this script after the the Tekton pipeline is setup
+
+----
+$DEMO_HOME/scripts/create-jenkins-cicd.sh deploy --project-prefix petclinic
+----
+
+== Troubleshooting ==
+
+=== MySQL ===
+
+You can test access to a MySQL database in an OpenShift cluster using the `Adminer` image.
+
+. First, setup port forwarding to the service in question (assuming a petclinic based service as shown in the walkthrough)
++
+----
+oc port-forward svc/petclinic-mysql 3306:3306
+----
++
+. Then, in another shell, run the `Adminer` image and have it port forward to 8080. _NOTE: Assumes you are running on a Mac using Docker for Mac, this is where the `docker.for.mac.localhost` stuff comes from_
++
+----
+docker run -p 8080:8080 -e ADMINER_DEFAULT_SERVER=docker.for.mac.localhost adminer:latest
+----
++
+. From the `Adminer` web page, login as root (using whatever secret was used in the setup of the cluster).  You can then run arbitrary commands.  Here are the commands you can run to grant access to a user pc to a newly created petclinic database (from link:https://linuxize.com/post/how-to-create-mysql-user-accounts-and-grant-privileges/[here])
++
+----
+CREATE USER 'pc'@'%' IDENTIFIED BY 'petclinic';
+CREATE DATABASE petclinic;
+GRANT ALL PRIVILEGES ON petclinic.* TO 'pc'@'%';
+----
++
+.. Or instead, you run SQL commands from the local command line
++
+----
+oc run mysql-client --image=mysql:5.7 --restart=Never --rm=true --attach=true --wait=true \
+    -- mysql -h petclinic-mysql -uroot -ppetclinic -e "CREATE USER 'pc'@'%' IDENTIFIED BY 'petclinic'; \
+      CREATE DATABASE petclinic; \
+      GRANT ALL PRIVILEGES ON petclinic.* TO 'pc'@'%';"
+----
+
+=== Troubleshooting Pipeline Tasks ===
+
+==== General ====
+
+If a pipeline fails and the logs are not enough to determine the problem, you can use the fact that every task maps to a pod to your advantage.
+
+Let's say that the task "unit-test" failed in a recent run.
+
+. First look for the pod that represents that run
++
+----
+$ oc get pods
+NAME                                                              READY   STATUS      RESTARTS   AGE
+petclinic-dev-pipeline-tomcat-dwjk4-checkout-vnp7v-pod-f8b5j      0/1     Completed   0          3m18s
+petclinic-dev-pipeline-tomcat-dwjk4-unit-tests-5pct2-pod-4gk46    0/1     Error       0          3m
+petclinic-dev-pipeline-tomcat-kpbx9-checkout-t78sr-pod-qnfrh      0/1     Error       0 
+----
++
+. Then use the `oc debug` command to restart that pod to look around:
++
+----
+$ oc debug po/petclinic-dev-pipeline-tomcat-dwjk4-unit-tests-5pct2-pod-4gk46
+Starting pod/petclinic-dev-pipeline-tomcat-dwjk4-unit-tests-5pct2-pod-4gk46-debug, command was: /tekton/tools/entrypoint -wait_file /tekton/downward/ready -wait_file_content -post_file /tekton/tools/0 -termination_path /tekton/termination -entrypoint ./mvnw -- -Dmaven.repo.local=/workspace/source/artefacts -s /var/config/settings.xml package
+If you don't see a command prompt, try pressing enter.
+sh-4.2$ 
+----
+
+==== Volume Issues ====
+
+Sometimes pipelines fail to run because the workspace volume cannot be mounted.  Looks like to root cause has to do with the underlying infra volume being deleted out from underneath a `PersistentVolume`.  If you have pipelines that are timing out due to pods failing to run (usually you won't get any log stream), take a look at the events on the pod and see if you notice these kind of mounting errors:
+
+image:docs/images/missing-volume.png[]
+
+This can usually be remedied by deleting the PVC, but finalizers keep PVCs from being deleted if a pod has a claim.
+
+If you run into this issue, *cancel the affected pipeline* (otherwise the PVC won't be able to be deleted) and either run the following command or see the additional details that follow
+
+----
+scripts/util-recreate-pvc.sh pipeline-source-pvc.yaml
+----
+
+To see all the claims on a PVC, look for the `Mounted By` section of the output of the following describe command (for `pvc/maven-source-pvc`):
+----
+oc describe pvc/maven-source-pvc
+----
+
+To delete all pods that have a claim on the pvc `pvc/maven-source-pvc`:
+----
+oc delete pods $(oc describe pvc/maven-source-pvc | grep "Mounted By" -A40 | sed "s/ //ig" | sed "s/MountedBy://ig")
+----
+
+=== Troubleshooting OpenShift Permissions ===
+
+You can use the `oc run` command to run certain containers in a given project as a service account.
+
+For instance, this command can be used to see what kind of permissions the builder service account has to view other projects (e.g. access to remote imagestreams)
+
+----
+oc run test3 --image=quay.io/openshift/origin-cli:latest --serviceaccount=builder -it --rm=true
+----
+
+=== Troubleshooting (Local) Tomcat Server ===
+
+If the tomcat extension fails to run, you can attempt the following:
+
+. remote any old tomcat files
++
+----
+rm -f /opt/webserver/webse*
+----
++
+. Attempt to readd tomcat to /opt/webserver per the instructions above
++
+. if that still doesn't work, rebuild container.
++
+. If all else fails, [blue]#you can run the tomcat server locally#.  
+
+
+=== OpenShift Nexus Installation ===
+
+The `$DEMO_HOME/scripts/create-cicd.sh` will create a Nexus instance within the `petclinic-cicd` project and will configure the repo accordingly so that the application can be built appropriately.  Should something go wrong, this section outlines steps that the script should have undertaken so that you can troubleshoot.
+
+image:images/nexus-maven-public.png[]
+
+The original petclinic app uses some repos outside of maven central.  Namely:
+
+* https://maven.repository.redhat.com/earlyaccess/all/
+* https://repo.spring.io/milestone/
+
+Here's how you would manually configure these in Nexus:
+
+. Connect to the nexus instance (see route) 
++
+----
+echo "http://$(oc get route nexus -n petclinic-cicd -o jsonpath='{.spec.host}')/"
+----
++
+. Log into the nexus instance (standard nexus setup has admin, admin123)
++
+. Go to _Repositories_ and _Create Repository_ for each of the repos needed
++
+image:images/nexus-repositories.png[]
++
+.. Here's example configuration for each of the above
++
+image:images/nexus-spring-repo.png[Spring]
+image:images/nexus-redhat.png[Red Hat]
++
+. Add the two registries to the maven-public group as per the screenshot
++
+[red]#FIXME: This is necessary until every build gets a semantic version number update#
++
+. Update the `maven-releases` repo to allow updates like below:
++
+image:images/nexus-repo-allow-redeploy.png[]
+
+=== OpenShift Pipeline (Git) Triggers ===
+
+Tekton allows for `EventListeners`, `TriggerTemplates`, and `TriggerBindings` to allow a git repo to hit a webhook and trigger a build.  See also link:https://github.com/tektoncd/triggers[here].  To get basic triggers going for both gogs and github run the following:
+
+NOTE: For an example of triggers working with Tekton, see files link:https://github.com/siamaksade/tekton-cd-demo/tree/master/triggers[in the template directory of this repo]
+
+NOTE: You may also want to consider link:https://github.com/tektoncd/experimental/blob/master/webhooks-extension/docs/GettingStarted.md[this tekton dashboard functionality]
+
+YAML resources for the pipeline created for this demo can be found in these locations:
+
+. Resources: $DEMO_HOME/kube/tekton/resources
+. Triggers: $DEMO_HOME/kube/tekton/triggers
+
+==== Triggered Pipeline Fails to Run ====
+
+If the trigger doesn't appear to fire, then check the logs of the pod that is running that represents the webhook.  The probably is likely in the `PipelineRun` template.
+
+==== Viewing (Extended) OpenShift Pipeline (Tekton) Logs ====
+
+You can see limited logs in the Tekton UI, but if you want the full logs, you can access these from the command line using the `tkn` command
+
+----
+# Get the list of pipelineruns in the current project
+tkn pipelinerun list
+
+# Output the full logs of the named pipeline run (where petclinic-deploy-dev-run-j7ktj is a pipeline run name )
+tkn pipelinerun logs petclinic-deploy-dev-run-j7ktj
+----
+
+To output the logs of a currently running pipelinerun (`pr`) and follow them, use:
+
+----
+tkn pr logs -L -f
+----
+
+== Appendix ==
+
+=== Still To Come ===
+
+. Programmatic creation of AWS Components (currently only Elastic Beanstalk supported).  See .json files link:aws[here]
+. Update OpenShift Pipeline UnitTest to use surefire:test goal for unit test (and allow viewing of report)
+. OpenShift pipeline to update version number of every build
+. Add a TaskRun that would support cleaning the maven build and/or deleting all build and package artifacts in the maven workspace
+. Update the OLM MySQL Operator to have a custom icon and reference relevant CRDs (like Cluster)
