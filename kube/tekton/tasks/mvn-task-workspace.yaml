@@ -20,9 +20,10 @@ spec:
       default: maven-settings
   steps:
     - name: mvn
-      image: quay.io/mhildenb/jboss-webserver31-tomcat8-openshift-base:1.0
+      image: gcr.io/cloud-builders/mvn
       workingDir: $(workspaces.maven-source.path)
-      command: ["./mvnw"]
+      command: 
+      - /usr/bin/mvn
       args:
         - -Dmaven.repo.local=$(workspaces.maven-source.path)/artefacts
         - -s
