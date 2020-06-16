@@ -130,6 +130,8 @@ oc run mysql-client --image=mysql:5.7 --restart=Never --rm=true --attach=true --
 
 === Troubleshooting Pipeline Tasks ===
 
+==== General ====
+
 If a pipeline fails and the logs are not enough to determine the problem, you can use the fact that every task maps to a pod to your advantage.
 
 Let's say that the task "unit-test" failed in a recent run.
@@ -151,6 +153,30 @@ $ oc debug po/petclinic-dev-pipeline-tomcat-dwjk4-unit-tests-5pct2-pod-4gk46
 Starting pod/petclinic-dev-pipeline-tomcat-dwjk4-unit-tests-5pct2-pod-4gk46-debug, command was: /tekton/tools/entrypoint -wait_file /tekton/downward/ready -wait_file_content -post_file /tekton/tools/0 -termination_path /tekton/termination -entrypoint ./mvnw -- -Dmaven.repo.local=/workspace/source/artefacts -s /var/config/settings.xml package
 If you don't see a command prompt, try pressing enter.
 sh-4.2$ 
+----
+
+==== Volume Issues ====
+
+Sometimes pipelines fail to run because the workspace volume cannot be mounted.  Looks like to root cause has to do with the underlying infra volume being deleted out from underneath a `PersistentVolume`.  If you have pipelines that are timing out due to pods failing to run (usually you won't get any log stream), take a look at the events on the pod and see if you notice these kind of mounting errors:
+
+image:docs/images/missing-volume.png[]
+
+This can usually be remedied by deleting the PVC, but finalizers keep PVCs from being deleted if a pod has a claim.
+
+If you run into this issue, *cancel the affected pipeline* (otherwise the PVC won't be able to be deleted) and either run the following command or see the additional details that follow
+
+----
+scripts/util-recreate-pvc.sh pipeline-source-pvc.yaml
+----
+
+To see all the claims on a PVC, look for the `Mounted By` section of the output of the following describe command (for `pvc/maven-source-pvc`):
+----
+oc describe pvc/maven-source-pvc
+----
+
+To delete all pods that have a claim on the pvc `pvc/maven-source-pvc`:
+----
+oc delete pods $(oc describe pvc/maven-source-pvc | grep "Mounted By" -A40 | sed "s/ //ig" | sed "s/MountedBy://ig")
 ----
 
 === Troubleshooting OpenShift Permissions ===
