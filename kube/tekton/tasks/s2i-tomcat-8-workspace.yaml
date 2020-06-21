@@ -12,6 +12,7 @@ spec:
   - name: maven-source
     description: Persistent volume where everything is getting compiled
     mountPath: /workspace/source
+    readOnly: true
   inputs:
   # does not take a repo as an input since everything it needs should already be on the workspace
   #   resources:
@@ -68,7 +69,7 @@ spec:
           mountPath: /env-params
     - name: generate
       image: quay.io/openshift-pipeline/s2i
-      workingDir: /workspace/source
+      workingDir: $(workspaces.maven-source.path)
       command:
         - 's2i'
         - 'build'

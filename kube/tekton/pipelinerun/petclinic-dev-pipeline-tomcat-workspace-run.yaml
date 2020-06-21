@@ -10,6 +10,10 @@ spec:
     resourceRef:
       name: petclinic-image
   workspaces:
+  - name: local-maven-repo
+    persistentVolumeClaim:
+      claimName: maven-repo-pvc
   - name: local-maven-source
     persistentVolumeClaim:
       claimName: maven-source-pvc
+    

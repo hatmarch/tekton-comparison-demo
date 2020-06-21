@@ -6,6 +6,8 @@ metadata:
 spec:
   workspaces:
   - name: maven-source
+  - name: maven-repo
+    description: Where the maven artefacts are stored
   inputs:
     params:
     - name: SONAR_URL
@@ -22,7 +24,7 @@ spec:
       workingDir: $(workspaces.maven-source.path)
       command: ["/usr/bin/mvn"]
       args:
-        - -Dmaven.repo.local=$(workspaces.maven-source.path)/artefacts
+        - -Dmaven.repo.local=$(workspaces.maven-repo.path)
         - -s
         - /var/config/settings.xml
         - install

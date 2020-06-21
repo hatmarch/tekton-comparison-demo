@@ -40,3 +40,6 @@ spec:
       - name: local-maven-source
         persistentVolumeClaim:
           claimName: maven-source-pvc
+      - name: local-maven-repo
+        persistentVolumeClaim:
+          claimName: maven-repo-pvc

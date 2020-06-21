@@ -6,6 +6,9 @@ spec:
   taskRef:
     name: maven-workspace
   workspaces:
+  - name: maven-repo
+    persistentVolumeClaim:
+      claimName: maven-repo-pvc
   - name: maven-source
     persistentVolumeClaim:
       claimName: maven-source-pvc

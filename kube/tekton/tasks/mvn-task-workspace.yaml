@@ -7,7 +7,8 @@ spec:
   workspaces:
   - name: maven-source
     description: The folder where all the building happens
-    mountPath: /workspace/source
+ - name: maven-repo
+    description: The folder where all the maven artefacts should be stored
   inputs:
     params:
     - name: GOALS
@@ -18,21 +19,37 @@ spec:
       description: The configmap containing Maven settings.xml
       type: string
       default: maven-settings
+    - name: TARGET_DIR
+      description: Where the output binaries should be placed
+      default: /var/target
   steps:
+    - name: echo
+      image: quay.io/openshift/origin-cli:latest
+      workingDir: $(workspaces.maven-source.path)
+      script: |
+        #!/usr/bin/env bash
+        echo -n $(pwd)
+        ls -l
+        echo -n $(inputs.params.TARGET_DIR)
     - name: mvn
       image: gcr.io/cloud-builders/mvn
       workingDir: $(workspaces.maven-source.path)
       command: 
       - /usr/bin/mvn
       args:
-        - -Dmaven.repo.local=$(workspaces.maven-source.path)/artefacts
+        - -Dmaven.repo.local=$(workspaces.maven-repo.path)
         - -s
         - /var/config/settings.xml
+        - -DbuildDirectory=$(inputs.params.TARGET_DIR)
         - "$(inputs.params.GOALS)"
       volumeMounts:
         - name: maven-settings
           mountPath: /var/config
+        - name: default-target
+          mountPath: /var/target
   volumes:
     - name: maven-settings
       configMap:
         name: $(inputs.params.MAVEN_SETTINGS_CONFIGMAP)
+    - name: default-target
+      emptyDir: {}
