@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1alpha1
+kind: TaskRun
+metadata:
+  generateName: git-workspace-run-
+spec:
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: output
+      persistentVolumeClaim:
+        claimName: maven-source-pvc
+    inputs:
+      params:
+      - name: url
+        value: 'https://github.com/hatmarch/spring-framework-petclinic.git'
+      - name: revision
+        value: 'spring-5.2.0'
+      - name: message
+        value: 'built by task run'
+      # by setting subdirectory parameters to ""
+      # checkout will clone to the root of the local-maven-source
+      # volume, which will allow other tasks to find this directory
+      # at their name for the mount point
+      - name: subdirectory
+        value: ""
+      - name: deleteExisting
+        value: "true"
