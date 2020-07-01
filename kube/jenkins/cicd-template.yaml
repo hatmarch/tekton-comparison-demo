@@ -101,12 +101,32 @@ objects:
             agent {
               label 'maven'
             }
+
+            environment {
+              // Tags
+              devTag      = "0.0-0"
+
+              sonarQubeUrl = "http://sonarqube:9000"
+            }
+
             stages {
               stage('Build App') {
                 steps {
                   sh "rm -rf /tmp/build-app"
                   git branch: 'spring-5.2.0', url: 'http://gogs:3000/gogs/${GOGS_REPO_NAME}.git'
+
+                  script {
+                    // Create a tag for the build
+                    def pom = readMavenPom file: 'pom.xml'
+                    def version = pom.version
+                    // Set the tag for the development image: version + build number
+                    devTag  = "${version}-" + currentBuild.number
+                  }
+                  
+                  // First set the version as the devTag in the pom
+                  sh "${mvnCmd} versions:set -DnewVersion=${devTag}"
                   sh "${mvnCmd} install -DskipTests=true"
+
                   sh "mkdir -p /tmp/build-app && cp target/ROOT.war /tmp/build-app/ROOT.war"
                 }
               }
@@ -123,7 +143,11 @@ objects:
                     steps {
                       script {
                         sh "${mvnCmd} install -DskipTests=true"
-                        sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -DskipTests=true"
+
+                        // Execute Sonarqube Tests
+                        //      Your project name should be "${GUID}-${JOB_BASE_NAME}-${devTag}"
+                        //      Your project version should be ${devTag}  (can be set with sonar.projectVersion if the pom is incorrect)
+                        sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${sonarQubeUrl} -Dsonar.projectName=${JOB_BASE_NAME}-${devTag} -Dsonar.projectKey=${JOB_BASE_NAME}-${devTag} -DskipTests=true"
                       }
                     }
                   }
