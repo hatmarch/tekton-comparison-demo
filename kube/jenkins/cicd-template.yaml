@@ -107,6 +107,9 @@ objects:
               devTag      = "0.0-0"
 
               sonarQubeUrl = "http://sonarqube:9000"
+
+              imageName = "petclinic"
+              imageStreamService = "image-registry.openshift-image-registry.svc:5000"
             }
 
             stages {
@@ -162,7 +165,7 @@ objects:
                     }
                   }
                 
-                  stage('Build Image') {
+                  stage('Build And Tag Image') {
                     steps {
                       // NOTE: image should already be called ROOT.war
                       // sh "cp target/openshift-tasks.war target/ROOT.war"
@@ -172,6 +175,9 @@ objects:
                             // NOTE that we are deploying a .war file we built in the first step and stored separately to 
                             // keep other maven operations from affecting it      
                             openshift.selector("bc", "petclinic").startBuild("--from-file=/tmp/build-app/ROOT.war", "--wait=true")
+
+                            def tagResult = openshift.tag("${imageName}:latest", "${imageName}:${devTag}");
+                            echo "Result of image tagging:\n ${tagResult.actions[0].out} ${tagResult.actions[0].err}"
                           }
                         }
                       }
@@ -185,7 +191,16 @@ objects:
                   script {
                     openshift.withCluster() {
                       openshift.withProject(env.DEV_PROJECT) {
-                        openshift.selector("dc", "petclinic").rollout().latest();
+                        // set the image on the dc
+                        devImageName = "${imageStreamService}/${env.DEV_PROJECT}/${imageName}:${devTag}"
+                        openshift.set("image", "dc/petclinic", "petclinic=${devImageName}")
+        
+                        // set the VERSION env variable on the dc
+                        openshift.set("env", "dc/petclinic", "VERSION='${devTag} (${env.DEV_PROJECT})'")
+
+                        def dc = openshift.selector("dc", "petclinic")
+                        dc.rollout().latest()
+                        dc.rollout().status() // wait for rollout to finish
                       }
                     }
                   }
@@ -208,7 +223,7 @@ objects:
                           sh "skopeo copy docker://quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest docker://quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:stage --src-creds \"$QUAY_USER:$QUAY_PWD\" --dest-creds \"$QUAY_USER:$QUAY_PWD\" --src-tls-verify=false --dest-tls-verify=false"
                         }
                       } else {
-                        openshift.tag("${env.DEV_PROJECT}/petclinic:latest", "${env.STAGE_PROJECT}/petclinic:stage")
+                        openshift.tag("${env.DEV_PROJECT}/${imageName}:${devTag}", "${env.STAGE_PROJECT}/petclinic:stage")
                       }
                     }
                   }
@@ -219,7 +234,14 @@ objects:
                   script {
                     openshift.withCluster() {
                       openshift.withProject(env.STAGE_PROJECT) {
-                        openshift.selector("dc", "petclinic").rollout().latest();
+                        openshift.set("image", "dc/petclinic", "petclinic=${imageStreamService}/${env.STAGE_PROJECT}/petclinic:stage")
+        
+                        // set the VERSION env variable on the dc
+                        openshift.set("env", "dc/petclinic", "VERSION='${devTag} (${env.STAGE_PROJECT})'")
+
+                        def dc = openshift.selector("dc", "petclinic")
+                        dc.rollout().latest()
+                        dc.rollout().status()  // wait for rollout to finish  
                       }
                     }
                   }
