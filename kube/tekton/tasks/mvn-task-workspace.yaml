@@ -7,7 +7,7 @@ spec:
   workspaces:
   - name: maven-source
     description: The folder where all the building happens
- - name: maven-repo
+  - name: maven-repo
     description: The folder where all the maven artefacts should be stored
   inputs:
     params:
