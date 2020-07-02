@@ -48,11 +48,21 @@ spec:
       value: ""
     - name: deleteExisting
       value: "true"
+  - name: set-build-version
+    taskRef:
+      name: set-build-version
+    runAfter:
+      - checkout
+    workspaces:
+    - name: maven-source
+      workspace: local-maven-source
+    - name: maven-repo
+      workspace: local-maven-repo
   - name: build-app
     taskRef:
       name: maven-workspace
     runAfter:
-      - checkout
+      - set-build-version
     workspaces:
     - name: maven-source
       workspace: local-maven-source

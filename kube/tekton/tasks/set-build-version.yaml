@@ -1,0 +1,83 @@
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: set-build-version
+spec:
+  workspaces:
+  - name: maven-source
+    description: The folder where all the building happens
+  - name: maven-repo
+    description: The folder where all the maven artefacts should be stored
+  inputs:
+    params:
+    - name: base-version-override
+      description: We'll normally get our base version from the pom, but we can override that here.
+      type: string
+      default: ""
+    - name: build-number-override
+      type: string
+      description: Whether we want to override the base build number.
+      default: ""
+  results:
+    - name: build-id
+      description: ID of the current build
+    - name: build-number
+      description: A build number generated for this build (only for PipelineRuns)
+  steps:
+    # FIXME: In Tekton beta, the currently running pipeline or task can be found
+    # by looking into the context variable substitution.
+    - name: generate-buildid
+      image: gcr.io/tekton-releases/dogfooding/tkn
+      workingDir: $(workspaces.maven-source.path)
+      script: |
+        #!/usr/bin/env sh
+        echo "starting build number generation"
+        BUILD_NUM="$(inputs.params.build-number-override)"
+        if [[ -z "${BUILD_NUM}" ]]; then
+          # FIXME: This won't work properly when in TaskRun
+          BUILD_NUM=`/usr/local/bin/tkn pr list --limit 1 -o jsonpath='{.items[0].metadata.name}' | sed -n 's/^.*-\([^-]*\)$/\1/p'`
+        fi
+
+        ls -l /tekton
+
+        echo "build number path is: $(results.build-number.path)"
+
+        echo ${BUILD_NUM} | tr -d "\n" | tee $(results.build-number.path)
+    - name: get-base-version
+      image: gcr.io/cloud-builders/mvn
+      workingDir: $(workspaces.maven-source.path)
+      script: |
+        #!/usr/bin/env bash
+        BASE_VERSION=$(inputs.params.base-version-override)
+        
+        if [[ -z "${BASE_VERSION}" ]]; then
+
+            if [[ ! -f pom.xml ]]; then
+                echo "No pom.xml found"
+                exit 1
+            fi
+
+            BASE_VERSION=`echo -e 'setns x=http://maven.apache.org/POM/4.0.0\ncat \
+             /x:project/x:version/text()' | xmllint --shell pom.xml | grep -v /`
+        fi
+
+        buildId=${BASE_VERSION}-`cat $(results.build-number.path)`
+
+        echo ${buildId} | tr -d "\n" | tee $(results.build-id.path)
+        echo -n "Generated build id: ${buildId}"
+    - name: set-version
+      image: gcr.io/cloud-builders/mvn
+      workingDir: $(workspaces.maven-source.path)
+      script: |
+        #!/usr/bin/env bash
+        /usr/bin/mvn versions:set -Dmaven.repo.local=$(workspaces.maven-repo.path) \
+            -DnewVersion=`cat $(results.build-id.path)`
+    - name: debug-version
+      image: gcr.io/cloud-builders/mvn
+      workingDir: $(workspaces.maven-source.path)
+      script: |
+        #!/usr/bin/env bash
+        BASE_VERSION_DEBUG=`echo -e 'setns x=http://maven.apache.org/POM/4.0.0\ncat \
+            /x:project/x:version/text()' | xmllint --shell pom.xml | grep -v /`
+
+        echo "Pom version is now: ${BASE_VERSION_DEBUG}"
