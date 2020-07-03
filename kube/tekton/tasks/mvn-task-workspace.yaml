@@ -23,14 +23,15 @@ spec:
       description: Where the output binaries should be placed
       default: /var/target
   steps:
-    - name: echo
-      image: quay.io/openshift/origin-cli:latest
-      workingDir: $(workspaces.maven-source.path)
-      script: |
-        #!/usr/bin/env bash
-        echo -n $(pwd)
-        ls -l
-        echo -n $(inputs.params.TARGET_DIR)
+    # FOR DEBUGGING
+    # - name: echo
+    #   image: quay.io/openshift/origin-cli:latest
+    #   workingDir: $(workspaces.maven-source.path)
+    #   script: |
+    #     #!/usr/bin/env bash
+    #     echo -n $(pwd)
+    #     ls -l
+    #     echo -n $(inputs.params.TARGET_DIR)
     - name: mvn
       image: gcr.io/cloud-builders/mvn
       workingDir: $(workspaces.maven-source.path)
