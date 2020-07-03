@@ -53,14 +53,14 @@ objects:
       params:
       - name: COMMANDS
         value: |
-            oc tag ${DEVELOPMENT_PROJECT}/${DEV_APP_NAME}:$(params.IMAGE_TAG) ${STAGING_PROJECT}/${APP_NAME}:latest
-            oc rollout status deploymentconfig/${APP_NAME} -n ${STAGING_PROJECT}
-    - name: test
-      taskRef:
-        name: openshift-client
-      runAfter:
-        - promote-stage
-      params:
-      - name: COMMANDS
-        value: |
-            sleep $(($RANDOM % 20 + 10))
+            echo "Tagging image as the current stage image"
+            oc tag ${DEVELOPMENT_PROJECT}/${DEV_APP_NAME}:$(params.IMAGE_TAG) ${STAGING_PROJECT}/${APP_NAME}:stage
+
+            echo "Deploying latest image of ${APP_NAME} to ${STAGING_PROJECT}"
+            # NOTE: When setting container images, you need to specify the image in docker format and not by image stream
+            DOCKER_IMAGE="`oc get is/${APP_NAME} -o jsonpath='{.status.dockerImageRepository}' -n ${STAGING_PROJECT}`:stage"
+            oc set image dc/${APP_NAME} ${APP_NAME}="${DOCKER_IMAGE}" -n ${STAGING_PROJECT}
+            oc rollout latest dc/${APP_NAME} -n ${STAGING_PROJECT}
+
+            echo "Waiting for deployment to complete"
+            oc rollout status dc/${APP_NAME} -n ${STAGING_PROJECT}
