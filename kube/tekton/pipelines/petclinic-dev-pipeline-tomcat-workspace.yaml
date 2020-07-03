@@ -123,6 +123,10 @@ spec:
     runAfter:
       - unit-tests
       - code-analysis
+    # until parallel tasks that share a workspace can be scheduled to the same pod, 
+    # we need to retry this task to try to get it to work.  This feature should be added
+    # in an upcoming release of Tekton, see: https://github.com/tektoncd/pipeline/issues/2586
+    retries: 3
     workspaces:
     - name: maven-source
       workspace: local-maven-source
