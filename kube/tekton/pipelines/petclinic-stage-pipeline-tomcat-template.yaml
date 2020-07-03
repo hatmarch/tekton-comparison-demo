@@ -53,6 +53,7 @@ objects:
       params:
       - name: COMMANDS
         value: |
+            set -e -o pipefail
             echo "Tagging image as the current stage image"
             oc tag ${DEVELOPMENT_PROJECT}/${DEV_APP_NAME}:$(params.IMAGE_TAG) ${STAGING_PROJECT}/${APP_NAME}:stage
 
