@@ -7,6 +7,7 @@ declare COMMAND="help"
 declare SKIP_STAGING_PIPELINE=""
 declare USER=""
 declare PASSWORD=""
+declare slack_webhook_url=""
 
 valid_command() {
   local fn=$1; shift
@@ -38,6 +39,10 @@ while (( "$#" )); do
       ;;
     --password)
       PASSWORD=$2
+      shift 2
+      ;;
+    --slack-webhook-url)
+      slack_webhook_url=$2
       shift 2
       ;;
     --skip-staging-pipeline)
@@ -121,11 +126,16 @@ command.install() {
   GOGS_HOSTNAME=$(oc get route gogs -o template --template='{{.spec.host}}' -n $cicd_prj)
 
   info "Deploying pipeline and tasks to $cicd_prj namespace"
-  oc apply -f $DEMO_HOME/kube/tekton/tasks -n $cicd_prj
-  oc apply -f $DEMO_HOME/kube/config/maven-configmap.yaml -n $cicd_prj
+  oc apply -f $DEMO_HOME/kube/tekton/tasks --recursive -n $cicd_prj
+  oc apply -f $DEMO_HOME/kube/tekton/config -n $cicd_prj
   oc apply -f $DEMO_HOME/kube/tekton/pipelines/pipeline-pvc.yaml -n $cicd_prj
   oc apply -f $DEMO_HOME/kube/tekton/pipelines/pipeline-source-pvc.yaml -n $cicd_prj
-
+  
+  if [[ -z "${slack_webhook_url}" ]]; then
+    info "NOTE: No slack webhook url is set.  You can add this later by running oc create secret generic slack-webhook-secret."
+  else
+    oc create secret generic slack-webhook-secret --from-literal=url=${slack_webhook_url}
+  fi
 
   info "Deploying dev and staging pipelines"
   if [[ -z "$SKIP_STAGING_PIPELINE" ]]; then
@@ -144,7 +154,7 @@ command.install() {
   oc apply -f $DEMO_HOME/kube/tekton/resources/petclinic-git.yaml -n $cicd_prj
 
   # Install pipeline triggers
-  oc apply -f $DEMO_HOME/kube/tekton/triggers -n $cicd_prj
+  oc apply -f $DEMO_HOME/kube/tekton/triggers --recursive -n $cicd_prj
 
   info "Initiatlizing git repository in Gogs and configuring webhooks"
   sed "s/@HOSTNAME/$GOGS_HOSTNAME/g" $DEMO_HOME/kube/config/gogs-configmap.yaml | oc create -f - -n $cicd_prj

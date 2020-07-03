@@ -1,0 +1,38 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: prompt-slack
+spec:
+  params:
+  - name: webhook-secret
+    type: string
+    description: name of the secret that contains the slack app webhook URL (key is 'url')
+  - name: tekton-webhook-callback
+    type: string
+    description: The name of the event listener that will receive any callbacks
+  - name: callback-payload
+    type: string
+    description: The payload to be delivered with the callback (e.g. image_tag to deploy)
+  - name: message-payload-configmap
+    type: string
+    description: configmap name of the message JSON to send to Slack.  Should be a file called message-payload.json
+  steps:
+  - name: post
+    image: curlimages/curl:7.68.0
+    script: |
+      #!/bin/sh
+      echo "Triggering webhook at $URL"
+      /usr/bin/curl -X POST -H 'Content-type: application/json' --data @/var/config/message-payload.json $URL
+    env:
+    - name: URL
+      valueFrom:
+        secretKeyRef:
+          name: $(params.webhook-secret)
+          key: url
+    volumeMounts:
+      - name: json-payload
+        mountPath: /var/config
+  volumes:
+    - name: json-payload
+      configMap:
+        name: $(params.message-payload-configmap)

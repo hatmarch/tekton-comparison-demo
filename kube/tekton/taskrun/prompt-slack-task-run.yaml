@@ -1,0 +1,20 @@
+apiVersion: tekton.dev/v1alpha1
+kind: TaskRun
+metadata:
+  generateName: prompt-slack-task-run-
+spec:
+  inputs:
+    params:
+      - name: webhook-secret
+        value: slack-webhook-secret
+      - name: message-payload-configmap
+        value: slack-message-payload
+      - name: callback-payload
+        value: "<IMAGE_TAG>"
+      - name: tekton-webhook-callback
+        value: '<??>'
+  serviceAccountName: pipeline
+  taskRef:
+    kind: Task
+    name: prompt-slack
+  timeout: 1h0m0s
