@@ -1,0 +1,23 @@
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: slack-trigger-template
+spec:
+  params:
+  - name: image-label
+    description: The image label to promote to staging
+    default: "later"
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1alpha1
+    kind: PipelineRun
+    metadata:
+      generateName: petclinic-stage-pipeline-tomcat-triggered-run-
+      labels:
+        tekton.dev/pipeline: petclinic-stage-pipeline-tomcat
+    spec:
+      pipelineRef:
+        name: petclinic-deploy-stage-tomcat
+      params:
+      - name: IMAGE_TAG
+        value: $(params.image-label)

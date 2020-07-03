@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack-webhook-interceptor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: slack-webhook-interceptor
+  template:
+    metadata:
+     labels:
+       app.kubernetes.io/name: slack-webhook-interceptor
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: slack-webhook-interceptor
+          image: quay.io/mhildenb/slack-webhook-interceptor:latest
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slack-webhook-interceptor
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: slack-webhook-interceptor
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
