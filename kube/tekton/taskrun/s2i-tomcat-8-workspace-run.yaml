@@ -20,6 +20,8 @@ spec:
       # build instead of running maven again
       - name: PATH_CONTEXT
         value: 'target'
+      - name: IMAGE_TAG
+        value: 'cmglb'
   outputs:
     resources:
       - name: image

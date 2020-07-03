@@ -107,6 +107,8 @@ spec:
       value: $(params.MAVEN_MIRROR_URL)
     - name: MAVEN_ARGS_APPEND
       value: "-Popenshift"
+    - name: IMAGE_TAG
+      value: $(tasks.set-build-version.results.build-number)
     # pointing to the target directory of a pre-built workspace will trigger a (faster) binary S2I build
     - name: PATH_CONTEXT
       value: target
@@ -164,10 +166,8 @@ spec:
     - name: COMMANDS
       value: |
           echo "Deploying latest image of petclinic to demo-dev"
-          oc rollout latest petclinic -n demo-dev
+          oc set image dc/petclinic petclinic="$(tasks.build-image.results.pushed-image-tag)" -n demo-dev
+          oc rollout latest dc/petclinic -n demo-dev
 
-          # oldschool way to doing the above
-          # oc scale deployment/spring-petclinic --replicas=0 -n demo-dev
-          # oc rollout status deployment/spring-petclinic -n demo-dev
-          # oc scale deployment/spring-petclinic --replicas=1 -n demo-dev
-          # oc rollout status deployment/spring-petclinic -n demo-dev
+          echo "Waiting for deployment to complete"
+          oc rollout status dc/petclinic -n demo-dev

@@ -39,6 +39,13 @@ spec:
         description: The base URL of a mirror used for retrieving artifacts
         default: ""
         type: string
+      - name: IMAGE_TAG
+        description: The tag to put on the resulting image
+        default: "latest"
+        type: string
+  results:
+    - name: pushed-image-tag
+      description: the full name of the image (including tag) that was pushed in this task
   outputs:
     resources:
       - name: image
@@ -91,7 +98,7 @@ spec:
     - name: build
       image: quay.io/buildah/stable
       workingDir: /gen-source
-      command: ['buildah', 'bud', '--tls-verify=$(inputs.params.TLSVERIFY)', '--layers', '-f', '/gen-source/Dockerfile.gen', '-t', '$(outputs.resources.image.url)', '.']
+      command: ['buildah', 'bud', '--tls-verify=$(inputs.params.TLSVERIFY)', '--layers', '-f', '/gen-source/Dockerfile.gen', '-t', '$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)', '.']
       volumeMounts:
         - name: varlibcontainers
           mountPath: /var/lib/containers
@@ -101,12 +108,20 @@ spec:
         privileged: true
     - name: push
       image: quay.io/buildah/stable
-      command: ['buildah', 'push', '--tls-verify=$(inputs.params.TLSVERIFY)', '$(outputs.resources.image.url)', 'docker://$(outputs.resources.image.url)']
+      command: ['buildah', 'push', '--tls-verify=$(inputs.params.TLSVERIFY)', '$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)', 'docker://$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)']
       volumeMounts:
         - name: varlibcontainers
           mountPath: /var/lib/containers
       securityContext:
         privileged: true
+    - name: results
+      image: registry.access.redhat.com/ubi8/ubi-minimal:latest
+      script: |
+        #!/usr/bin/env bash
+        PUSHED_IMAGE_TAG="$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)"
+        echo "Pushed image tagged as: ${PUSHED_IMAGE_TAG}."
+  
+        echo "${PUSHED_IMAGE_TAG}" | tr -d "\n" | tee $(results.pushed-image-tag.path)
   volumes:
     - name: varlibcontainers
       emptyDir: {}
