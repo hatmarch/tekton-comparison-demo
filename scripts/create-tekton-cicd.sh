@@ -164,6 +164,18 @@ command.install() {
   info "Configure nexus repo"
   $SCRIPT_DIR/util-config-nexus.sh -n $cicd_prj -u admin -p admin123
 
+  # Create the target apps
+  # dev
+  # NOTE: new build not needed for Tekton, but for Jenkins
+  oc new-build --name=petclinic --image-stream=${CICD_NAMESPACE}/tomcat8-builder --binary=true -n $dev_prj
+  oc new-app petclinic --allow-missing-images -n $$dev_prj
+  oc set triggers dc -l app=petclinic remove-all -n $dev_prj
+  
+  # stage
+  oc new-app petclinic:stage --allow-missing-images -n $stage_prj
+  oc set triggers dc -l app=petclinic --remove-all -n $stage_prj
+
+
   # Leave user in cicd project
   oc project $cicd_prj
 
