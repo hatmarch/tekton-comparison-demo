@@ -36,10 +36,16 @@ spec:
       echo "Current pipeline is ${CURRENT_PIPELINE} and current project is $CURRENT_PROJECT"
 
       BUILD_NUM=$(params.callback-payload)
-      BUILD_LOGS_URL="https://console-openshift-console.${DOMAIN}/k8s/ns/${CURRENT_PROJECT}/tekton.dev~v1alpha1~PipelineRun/${CURRENT_PIPELINE}/"
+      BUILD_LOGS_URL_BASE="https://console-openshift-console.${DOMAIN}/k8s/ns/${CURRENT_PROJECT}/tekton.dev~v1alpha1~PipelineRun"
+      BUILD_LOGS_URL="$BUILD_LOGS_URL_BASE/${CURRENT_PIPELINE}/"
       echo "Build logs url: ${BUILD_LOGS_URL}"
 
+      # Set the callback if passed in.  If blank, then set to the top of
+      # the openshift pipeline run page for this project
       CALLBACK_URL=$(params.tekton-webhook-callback)
+      if [[ -z "$CALLBACK_URL" ]]; then
+        CALLBACK_URL="$BUILD_LOGS_URL_BASE/"
+      fi
 
       cat /var/config/message-payload.json | sed 's#\${CALLBACK_PAYLOAD}#${BUILD_NUM}#g' | sed "s#\${CALLBACK_URL}#${CALLBACK_URL}#g" | sed "s#\${BUILD_LOGS_URL}#${BUILD_LOGS_URL}#g" | sed "s#\${BUILD_NUM}#${BUILD_NUM}#g" > /var/payload/message-payload.json
       echo "Payload is now:"

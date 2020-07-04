@@ -30,7 +30,8 @@ data:
                             "text": "Click to promote to staging",
                             "emoji": false
                         },
-                        "value" : "${CALLBACK_PAYLOAD}"
+                        "value" : "${CALLBACK_PAYLOAD}",
+                        "url" : "${CALLBACK_URL}"
                     }
                 ]
             }

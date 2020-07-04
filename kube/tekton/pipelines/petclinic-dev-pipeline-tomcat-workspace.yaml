@@ -177,7 +177,7 @@ spec:
 
           echo "Waiting for deployment to complete"
           oc rollout status dc/petclinic -n demo-dev
-  - name: prompt-slack
+  - name: prompt-stage
     taskRef:
       name: prompt-slack
     runAfter:
