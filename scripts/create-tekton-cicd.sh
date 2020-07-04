@@ -134,7 +134,7 @@ command.install() {
   if [[ -z "${slack_webhook_url}" ]]; then
     info "NOTE: No slack webhook url is set.  You can add this later by running oc create secret generic slack-webhook-secret."
   else
-    oc create secret generic slack-webhook-secret --from-literal=url=${slack_webhook_url}
+    oc create secret generic slack-webhook-secret --from-literal=url=${slack_webhook_url} -n $cicd_prj
   fi
 
   info "Deploying dev and staging pipelines"
