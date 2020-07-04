@@ -9,7 +9,8 @@ spec:
     description: name of the secret that contains the slack app webhook URL (key is 'url')
   - name: tekton-webhook-callback
     type: string
-    description: The name of the event listener that will receive any callbacks
+    description: The URL of a page to be opened when the response button is pressed.  NOTE that the listener callback is associated with the bot that the secret came from
+    default: "" 
   - name: callback-payload
     type: string
     description: The payload to be delivered with the callback (e.g. image_tag to deploy)
@@ -17,12 +18,43 @@ spec:
     type: string
     description: configmap name of the message JSON to send to Slack.  Should be a file called message-payload.json
   steps:
+  - name: prepare-message
+    image: quay.io/openshift/origin-cli:latest
+    script: |
+      #!/usr/bin/env bash
+
+      TRIGGER_URL=$(oc get route webhook-slack -o jsonpath='{.spec.host}')
+      echo "Trigger URL is at ${TRIGGER_URL}.  This is what your Interactivity Request URL should be set to in your slackbot"
+      
+      DOMAIN=$(echo ${TRIGGER_URL} | sed "s/^[^\.][^\.]*\.\(.*\)$/\1/g")
+      echo "Domain is $DOMAIN"
+
+      # Use this for testing with TaskRun
+      #CURRENT_PIPELINE=$(oc get po/${HOSTNAME} -o jsonpath="{.metadata.labels['tekton\.dev/taskRun']}")
+      CURRENT_PIPELINE=$(oc get po/${HOSTNAME} -o jsonpath="{.metadata.labels['tekton\.dev/pipelineRun']}")
+      CURRENT_PROJECT=$(oc get po/${HOSTNAME} -o jsonpath='{.metadata.namespace}')
+      echo "Current pipeline is ${CURRENT_PIPELINE} and current project is $CURRENT_PROJECT"
+
+      BUILD_NUM=$(params.callback-payload)
+      BUILD_LOGS_URL="https://console-openshift-console.${DOMAIN}/k8s/ns/${CURRENT_PROJECT}/tekton.dev~v1alpha1~PipelineRun/${CURRENT_PIPELINE}/"
+      echo "Build logs url: ${BUILD_LOGS_URL}"
+
+      CALLBACK_URL=$(params.tekton-webhook-callback)
+
+      cat /var/config/message-payload.json | sed 's#\${CALLBACK_PAYLOAD}#${BUILD_NUM}#g' | sed "s#\${CALLBACK_URL}#${CALLBACK_URL}#g" | sed "s#\${BUILD_LOGS_URL}#${BUILD_LOGS_URL}#g" | sed "s#\${BUILD_NUM}#${BUILD_NUM}#g" > /var/payload/message-payload.json
+      echo "Payload is now:"
+      cat /var/payload/message-payload.json
+    volumeMounts:
+      - name: process-payload
+        mountPath: /var/payload
+      - name: json-payload
+        mountPath: /var/config
   - name: post
     image: curlimages/curl:7.68.0
     script: |
       #!/bin/sh
       echo "Triggering webhook at $URL"
-      /usr/bin/curl -X POST -H 'Content-type: application/json' --data @/var/config/message-payload.json $URL
+      /usr/bin/curl -X POST -H 'Content-type: application/json' --data @/var/payload/message-payload.json $URL
     env:
     - name: URL
       valueFrom:
@@ -30,9 +62,11 @@ spec:
           name: $(params.webhook-secret)
           key: url
     volumeMounts:
-      - name: json-payload
-        mountPath: /var/config
+      - name: process-payload
+        mountPath: /var/payload
   volumes:
     - name: json-payload
       configMap:
         name: $(params.message-payload-configmap)
+    - name: process-payload
+      emptyDir: {}

@@ -5,35 +5,32 @@ metadata:
 data:
   message-payload.json: |
     {
-        "text": "Danny Torrence left a 1 star review for your property.",
+        "text": "Tekton build has completed",
         "blocks": [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "Danny Torrence left the following review for your property:"
-                }
-            },
             {
                 "type": "section",
                 "block_id": "section567",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "<https://example.com|Overlook Hotel> \n :star: \n Doors had too many axe holes, guest in room 237 was far too rowdy, whole place felt stuck in the 1920s."
+                    "text": "<${BUILD_LOGS_URL}|Build ${BUILD_NUM}> has completed :yay:"
                 },
                 "accessory": {
                     "type": "image",
-                    "image_url": "https://is5-ssl.mzstatic.com/image/thumb/Purple3/v4/d3/72/5c/d3725c8f-c642-5d69-1904-aa36e4297885/source/256x256bb.jpg",
-                    "alt_text": "Haunted hotel image"
+                    "image_url": "https://user-images.githubusercontent.com/12814972/73849604-22505780-4822-11ea-9fb0-a92fa185ee2a.png",
+                    "alt_text": "Tekton Triggers"
                 }
             },
             {
-                "type": "section",
-                "block_id": "section789",
-                "fields": [
+                "type": "actions",
+                "elements": [
                     {
-                        "type": "mrkdwn",
-                        "text": "*Average Rating*\n1.0"
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Click to promote to staging",
+                            "emoji": false
+                        },
+                        "value" : "${CALLBACK_PAYLOAD}"
                     }
                 ]
             }

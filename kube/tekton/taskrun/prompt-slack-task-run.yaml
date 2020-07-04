@@ -10,9 +10,9 @@ spec:
       - name: message-payload-configmap
         value: slack-message-payload
       - name: callback-payload
-        value: "<IMAGE_TAG>"
+        value: "wbkxg"
       - name: tekton-webhook-callback
-        value: '<??>'
+        value: 'http://foo.bar/'
   serviceAccountName: pipeline
   taskRef:
     kind: Task
