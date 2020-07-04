@@ -82,6 +82,7 @@ spec:
       name: maven-workspace
     runAfter:
       - build-app
+    retries: 3
     workspaces:
     - name: maven-source
       workspace: local-maven-source
@@ -100,6 +101,7 @@ spec:
     runAfter:
       - unit-tests
       - code-analysis
+    retries: 3
     params:
     - name: TLSVERIFY
       value: "false"
@@ -148,6 +150,7 @@ spec:
       name: sonar
     runAfter:
       - build-app
+    retries: 3
     workspaces:
     - name: maven-source
       workspace: local-maven-source
@@ -156,6 +159,9 @@ spec:
     params:
     - name: MAVEN_SETTINGS_CONFIGMAP
       value: custom-maven-settings
+    - name: MAVEN_PARAMETERS
+      value:
+      - -Dsonar.projectName="Spring Framework Petclinic"
   - name: deploy-dev
     taskRef:
       name: openshift-client
@@ -171,3 +177,16 @@ spec:
 
           echo "Waiting for deployment to complete"
           oc rollout status dc/petclinic -n demo-dev
+  - name: prompt-slack
+    taskRef:
+      name: prompt-slack
+    runAfter:
+      - deploy-dev
+    params:
+    - name: webhook-secret
+      value: slack-webhook-secret
+    - name: message-payload-configmap
+      value: slack-message-payload
+    - name: callback-payload
+      value: $(tasks.set-build-version.results.build-number)
+   

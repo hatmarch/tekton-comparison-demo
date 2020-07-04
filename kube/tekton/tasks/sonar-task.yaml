@@ -18,6 +18,10 @@ spec:
       description: The configmap containing Maven settings.xml
       type: string
       default: maven-settings
+    - name: MAVEN_PARAMETERS
+      description: Additional maven parameters
+      type: array
+      default: []
   steps:
     - name: mvn
       image: gcr.io/cloud-builders/mvn
@@ -32,6 +36,7 @@ spec:
         - -Dsonar.host.url=$(inputs.params.SONAR_URL)
         - -Dsonar.userHome=/tmp/sonar
         - -DskipTests
+        - $(inputs.params.MAVEN_PARAMETERS)
       volumeMounts:
         - name: maven-settings
           mountPath: /var/config
