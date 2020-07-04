@@ -6,12 +6,12 @@ metadata:
 spec:
   params:
   - name: image-label
-    value: $(body.slack.text)
+    value: $(body.slack.actions[0].value)
   - name: user-name
-    value: $(body.slack.user_name)
-  - name: command
-    value: $(body.slack.command)
+    value: $(body.slack.user.username)
   - name: slack-channel-id
-    value: $(body.slack.channel_id)
+    value: $(body.slack.channel.id)
   - name: response-url
     value: $(body.slack.response_url)
+  - name: message
+    value: $(body.slack.message.text)

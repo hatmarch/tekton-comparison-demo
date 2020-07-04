@@ -12,11 +12,14 @@ spec:
             header:
               - name: Slack-Decodeprefix
                 value: slack
+              - name: Slack-Decodenoflatten
+                value: "true"
+              - name: Slack-Payload
+                value: "true"
             objectRef:
               kind: Service
               name: slack-webhook-interceptor
               apiVersion: v1
-              # namespace: default
       bindings:
       - name: slack-triggerbinding
       template:
