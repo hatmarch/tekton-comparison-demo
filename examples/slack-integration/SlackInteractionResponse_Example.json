@@ -1,0 +1,87 @@
+{
+    "slack": {
+        "type": "block_actions",
+        "user": {
+            "id": "UMPNWC91B",
+            "username": "mhildenb",
+            "name": "mhildenb",
+            "team_id": "TMRJRG207"
+        },
+        "api_app_id": "A016EQ1K1K4",
+        "token": "XptzPGwyKKNElZa34FOZQnWt",
+        "container": {
+            "type": "message",
+            "message_ts": "1593786951.000600",
+            "channel_id": "G016F1027EF",
+            "is_ephemeral": false
+        },
+        "trigger_id": "1234990338945.739637546007.cb4c1732e605f37086009763e813cd66",
+        "team": {
+            "id": "TMRJRG207",
+            "domain": "redhatdev-anz"
+        },
+        "channel": {
+            "id": "G016F1027EF",
+            "name": "privategroup"
+        },
+        "message": {
+            "type": "message",
+            "subtype": "bot_message",
+            "text": "Tekton build has completed",
+            "ts": "1593786951.000600",
+            "bot_id": "B016M07BM7E",
+            "blocks": [
+                {
+                    "type": "section",
+                    "block_id": "section567",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "<https:\/\/console-openshift-console.yahoo.com\/\/k8s\/ns\/petclinic-cicd\/tekton.dev~v1alpha1~PipelineRun\/prompt-slack-task-run-2lw59-hu789\/|Build hu789> has completed :yay:",
+                        "verbatim": false
+                    },
+                    "accessory": {
+                        "fallback": "460x566px image",
+                        "image_url": "https:\/\/user-images.githubusercontent.com\/12814972\/73849604-22505780-4822-11ea-9fb0-a92fa185ee2a.png",
+                        "image_width": 460,
+                        "image_height": 566,
+                        "image_bytes": 129072,
+                        "type": "image",
+                        "alt_text": "Tekton Triggers"
+                    }
+                },
+                {
+                    "type": "actions",
+                    "block_id": "2FB5N",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "action_id": "jNrI",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Click to promote to staging",
+                                "emoji": false
+                            },
+                            "value": "hu789",
+                            "url": "http:\/\/www.yahoo.com\/"
+                        }
+                    ]
+                }
+            ]
+        },
+        "response_url": "https:\/\/hooks.slack.com\/actions\/TMRJRG207\/1222365819490\/3zyaj4ihwJU0cdlwMet6WZm2",
+        "actions": [
+            {
+                "action_id": "jNrI",
+                "block_id": "2FB5N",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Click to promote to staging",
+                    "emoji": false
+                },
+                "value": "hu789",
+                "type": "button",
+                "action_ts": "1593839792.504340"
+            }
+        ]
+    }
+}

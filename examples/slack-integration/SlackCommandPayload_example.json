@@ -1,0 +1,102 @@
+{
+    "type": "block_actions",
+    "user": {
+        "id": "UMPNWC91B",
+        "username": "mhildenb",
+        "name": "mhildenb",
+        "team_id": "TMRJRG207"
+    },
+    "api_app_id": "A016EQ1K1K4",
+    "token": "XptzPGwyKKNElZa34FOZQnWt",
+    "container": {
+        "type": "message",
+        "message_ts": "1593763621.000300",
+        "channel_id": "G016F1027EF",
+        "is_ephemeral": false
+    },
+    "trigger_id": "1227311734340.739637546007.b48b48afaf4a7b81ab3da74b0ebfc8f9",
+    "team": {
+        "id": "TMRJRG207",
+        "domain": "redhatdev-anz"
+    },
+    "channel": {
+        "id": "G016F1027EF",
+        "name": "privategroup"
+    },
+    "message": {
+        "type": "message",
+        "subtype": "bot_message",
+        "text": "This content can't be displayed.",
+        "ts": "1593763621.000300",
+        "bot_id": "B016M07BM7E",
+        "blocks": [
+            {
+                "type": "section",
+                "block_id": "kzA",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Danny Torrence left the following review for your property:",
+                    "verbatim": false
+                }
+            },
+            {
+                "type": "section",
+                "block_id": "section567",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "<https:\/\/google.com|Overlook Hotel> \n :star: \n Doors had too many axe holes, guest in room 237 was far too rowdy, whole place felt stuck in the 1920s.",
+                    "verbatim": false
+                },
+                "accessory": {
+                    "fallback": "256x256px image",
+                    "image_url": "https:\/\/is5-ssl.mzstatic.com\/image\/thumb\/Purple3\/v4\/d3\/72\/5c\/d3725c8f-c642-5d69-1904-aa36e4297885\/source\/256x256bb.jpg",
+                    "image_width": 256,
+                    "image_height": 256,
+                    "image_bytes": 19523,
+                    "type": "image",
+                    "alt_text": "Haunted hotel image"
+                }
+            },
+            {
+                "type": "section",
+                "block_id": "section789",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Average Rating*\n1.0",
+                        "verbatim": false
+                    }
+                ]
+            },
+            {
+                "type": "actions",
+                "block_id": "eglu",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "Urt1",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Reply to review",
+                            "emoji": false
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "response_url": "https:\/\/hooks.slack.com\/actions\/TMRJRG207\/1221131340674\/VTvy4CDZhLyzVJPK5kCYAJVn",
+    "actions": [
+        {
+            "action_id": "Urt1",
+            "block_id": "eglu",
+            "text": {
+                "type": "plain_text",
+                "text": "Reply to review",
+                "emoji": false
+            },
+            "type": "button",
+            "action_ts": "1593765636.331849"
+        }
+    ]
+}
