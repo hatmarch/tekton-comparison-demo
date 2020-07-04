@@ -157,9 +157,8 @@ objects:
                         sh "${mvnCmd} install -DskipTests=true"
 
                         // Execute Sonarqube Tests
-                        //      Your project name should be "${GUID}-${JOB_BASE_NAME}-${devTag}"
-                        //      Your project version should be ${devTag}  (can be set with sonar.projectVersion if the pom is incorrect)
-                        sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${sonarQubeUrl} -Dsonar.projectName=${JOB_BASE_NAME}-${devTag} -Dsonar.projectKey=${JOB_BASE_NAME}-${devTag} -DskipTests=true"
+                        // NOTE: other directives that can be used -Dsonar.projectKey=${JOB_BASE_NAME}-${devTag}
+                        sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${sonarQubeUrl} -Dsonar.projectName="Spring Framework Petclinic" -DskipTests=true"
                       }
                     }
                   }
@@ -367,39 +366,6 @@ objects:
             # adjust jenkins 
             oc set resources dc/jenkins --limits=cpu=2,memory=2Gi --requests=cpu=100m,memory=512Mi 
             oc label dc jenkins app=jenkins --overwrite 
-
-            if [ "${ENABLE_QUAY}" == "true" ] ; then
-              # cicd
-              oc create secret generic quay-cicd-secret --from-literal="username=${QUAY_USERNAME}" --from-literal="password=${QUAY_PASSWORD}" -n ${CICD_NAMESPACE}
-              oc label secret quay-cicd-secret credential.sync.jenkins.openshift.io=true -n ${CICD_NAMESPACE}
-              
-              # dev
-              oc create secret docker-registry quay-cicd-secret --docker-server=quay.io --docker-username="${QUAY_USERNAME}" --docker-password="${QUAY_PASSWORD}" --docker-email=cicd@redhat.com -n ${DEV_PROJECT}
-              oc new-build --name=petclinic --image-stream=${CICD_NAMESPACE}/tomcat8-builder --binary=true --push-secret=quay-cicd-secret --to-docker --to='quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest' -n ${DEV_PROJECT}
-              oc new-app --name=petclinic --docker-image=quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest --allow-missing-images -n ${DEV_PROJECT}
-              oc set triggers dc petclinic --remove-all -n ${DEV_PROJECT}
-              oc patch dc petclinic -p '{"spec": {"template": {"spec": {"containers": [{"name": "petclinic", "imagePullPolicy": "Always"}]}}}}' -n ${DEV_PROJECT}
-              oc delete is petclinic -n ${DEV_PROJECT}
-              oc secrets link default quay-cicd-secret --for=pull -n ${DEV_PROJECT}
-
-              
-              # stage
-              oc create secret docker-registry quay-cicd-secret --docker-server=quay.io --docker-username="${QUAY_USERNAME}" --docker-password="${QUAY_PASSWORD}" --docker-email=cicd@redhat.com -n ${STAGE_PROJECT}
-              oc new-app --name=petclinic --docker-image=quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:stage --allow-missing-images -n ${STAGE_PROJECT}
-              oc set triggers dc petclinic --remove-all -n ${STAGE_PROJECT}
-              oc patch dc petclinic -p '{"spec": {"template": {"spec": {"containers": [{"name": "petclinic", "imagePullPolicy": "Always"}]}}}}' -n ${STAGE_PROJECT}
-              oc delete is petclinic -n ${STAGE_PROJECT}
-              oc secrets link default quay-cicd-secret --for=pull -n ${STAGE_PROJECT}
-            else
-              # dev
-              oc new-build --name=petclinic --image-stream=${CICD_NAMESPACE}/tomcat8-builder --binary=true -n ${DEV_PROJECT}
-              oc new-app petclinic:latest --allow-missing-images -n ${DEV_PROJECT}
-              oc set triggers dc -l app=petclinic --containers=petclinic --from-image=petclinic:latest --manual -n ${DEV_PROJECT}
-              
-              # stage
-              oc new-app petclinic:stage --allow-missing-images -n ${STAGE_PROJECT}
-              oc set triggers dc -l app=petclinic --containers=petclinic --from-image=petclinic:stage --manual -n ${STAGE_PROJECT}
-            fi
             
             # dev project
             oc expose dc/petclinic --port=8080 -n ${DEV_PROJECT}

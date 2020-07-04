@@ -167,8 +167,8 @@ command.install() {
   # Create the target apps
   # dev
   # NOTE: new build not needed for Tekton, but for Jenkins
-  oc new-build --name=petclinic --image-stream=${CICD_NAMESPACE}/tomcat8-builder --binary=true -n $dev_prj
-  oc new-app petclinic --allow-missing-images -n $$dev_prj
+  oc new-build --name=petclinic --image-stream=$cicd_prj/tomcat8-builder --binary=true -n $dev_prj
+  oc new-app petclinic --allow-missing-images -n $dev_prj
   oc set triggers dc -l app=petclinic remove-all -n $dev_prj
   
   # stage
