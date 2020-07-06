@@ -158,7 +158,7 @@ objects:
 
                         // Execute Sonarqube Tests
                         // NOTE: other directives that can be used -Dsonar.projectKey=${JOB_BASE_NAME}-${devTag}
-                        sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${sonarQubeUrl} -Dsonar.projectName="Spring Framework Petclinic" -DskipTests=true"
+                        sh "${mvnCmd} sonar:sonar -Dsonar.host.url=${sonarQubeUrl} -Dsonar.projectName='Spring Framework Petclinic' -DskipTests=true"
                       }
                     }
                   }
