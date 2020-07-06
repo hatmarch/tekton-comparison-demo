@@ -55,7 +55,7 @@ oc apply -f $DEMO_HOME/kube/tekton/tekton-subscription.yaml
 . Optionally install tekton dashboard (for visualization) as per link:https://github.com/tektoncd/dashboard[here]
 +
 ----
-oc apply -f $DEMO_HOME/kube/tekton/openshift-tekton-dashboard-release.yaml
+oc apply -f $DEMO_HOME/kube/tekton/openshift-tekton-dashboard-release.yaml --validate=false
 oc wait --for=condition=Available deployment/tekton-dashboard -n openshift-pipelines
 ----
 +
