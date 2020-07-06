@@ -1,0 +1,229 @@
+{
+    "apiVersion": "tekton.dev/v1beta1",
+    "kind": "PipelineRun",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"tekton.dev/v1alpha1\",\"kind\":\"Pipeline\",\"metadata\":{\"annotations\":{},\"name\":\"petclinic-dev-pipeline-tomcat-workspace\",\"namespace\":\"petclinic-cicd\"},\"spec\":{\"params\":[{\"default\":\"http://nexus:8081/repository/maven-public/\",\"description\":\"For local mvn files for build\",\"name\":\"MAVEN_MIRROR_URL\",\"type\":\"string\"},{\"default\":\"http://gogs:3000/gogs/spring-petclinic.git\",\"description\":\"The repo to check output\",\"name\":\"GIT_REPO\",\"type\":\"string\"},{\"default\":\"spring-5.2.0\",\"description\":\"The branch to be built\",\"name\":\"GIT_REVISION\",\"type\":\"string\"},{\"default\":\"\\u003cnone\\u003e\",\"description\":\"The commit message of the triggered build (if any)\",\"name\":\"GIT_MESSAGE\",\"type\":\"string\"}],\"resources\":[{\"name\":\"app-image\",\"type\":\"image\"}],\"tasks\":[{\"name\":\"checkout\",\"params\":[{\"name\":\"url\",\"value\":\"$(params.GIT_REPO)\"},{\"name\":\"revision\",\"value\":\"$(params.GIT_REVISION)\"},{\"name\":\"message\",\"value\":\"$(params.GIT_MESSAGE)\"},{\"name\":\"subdirectory\",\"value\":\"\"},{\"name\":\"deleteExisting\",\"value\":\"true\"}],\"taskRef\":{\"name\":\"git-clone\"},\"workspaces\":[{\"name\":\"output\",\"workspace\":\"local-maven-source\"}]},{\"name\":\"set-build-version\",\"runAfter\":[\"checkout\"],\"taskRef\":{\"name\":\"set-build-version\"},\"workspaces\":[{\"name\":\"maven-source\",\"workspace\":\"local-maven-source\"},{\"name\":\"maven-repo\",\"workspace\":\"local-maven-repo\"}]},{\"name\":\"build-app\",\"params\":[{\"name\":\"GOALS\",\"value\":[\"install\",\"-DskipTests\"]},{\"name\":\"MAVEN_SETTINGS_CONFIGMAP\",\"value\":\"custom-maven-settings\"},{\"name\":\"TARGET_DIR\",\"value\":\"target\"}],\"runAfter\":[\"set-build-version\"],\"taskRef\":{\"name\":\"maven-workspace\"},\"workspaces\":[{\"name\":\"maven-source\",\"workspace\":\"local-maven-source\"},{\"name\":\"maven-repo\",\"workspace\":\"local-maven-repo\"}]},{\"name\":\"unit-tests\",\"params\":[{\"name\":\"GOALS\",\"value\":[\"surefire-report:report\",\"site-deploy\"]},{\"name\":\"MAVEN_SETTINGS_CONFIGMAP\",\"value\":\"custom-maven-settings\"}],\"retries\":3,\"runAfter\":[\"build-app\"],\"taskRef\":{\"name\":\"maven-workspace\"},\"workspaces\":[{\"name\":\"maven-source\",\"workspace\":\"local-maven-source\"},{\"name\":\"maven-repo\",\"workspace\":\"local-maven-repo\"}]},{\"name\":\"build-image\",\"params\":[{\"name\":\"TLSVERIFY\",\"value\":\"false\"},{\"name\":\"MAVEN_MIRROR_URL\",\"value\":\"$(params.MAVEN_MIRROR_URL)\"},{\"name\":\"MAVEN_ARGS_APPEND\",\"value\":\"-Popenshift\"},{\"name\":\"IMAGE_TAG\",\"value\":\"$(tasks.set-build-version.results.build-number)\"},{\"name\":\"PATH_CONTEXT\",\"value\":\"target\"}],\"resources\":{\"outputs\":[{\"name\":\"image\",\"resource\":\"app-image\"}]},\"retries\":3,\"runAfter\":[\"unit-tests\",\"code-analysis\"],\"taskRef\":{\"name\":\"s2i-tomcat-8-workspace\"},\"workspaces\":[{\"name\":\"maven-source\",\"workspace\":\"local-maven-source\"}]},{\"name\":\"release-app\",\"params\":[{\"name\":\"GOALS\",\"value\":[\"deploy\",\"-DskipTests=true\",\"-DaltDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-releases/\",\"-DaltSnapshotDeploymentRepository=nexus::default::http://nexus:8081/repository/maven-snapshots/\"]},{\"name\":\"MAVEN_SETTINGS_CONFIGMAP\",\"value\":\"custom-maven-settings\"}],\"retries\":3,\"runAfter\":[\"unit-tests\",\"code-analysis\"],\"taskRef\":{\"name\":\"maven-workspace\"},\"workspaces\":[{\"name\":\"maven-source\",\"workspace\":\"local-maven-source\"},{\"name\":\"maven-repo\",\"workspace\":\"local-maven-repo\"}]},{\"name\":\"code-analysis\",\"params\":[{\"name\":\"MAVEN_SETTINGS_CONFIGMAP\",\"value\":\"custom-maven-settings\"},{\"name\":\"MAVEN_PARAMETERS\",\"value\":[\"-Dsonar.projectName=\\\"Spring Framework Petclinic\\\"\"]}],\"retries\":3,\"runAfter\":[\"build-app\"],\"taskRef\":{\"name\":\"sonar\"},\"workspaces\":[{\"name\":\"maven-source\",\"workspace\":\"local-maven-source\"},{\"name\":\"maven-repo\",\"workspace\":\"local-maven-repo\"}]},{\"name\":\"deploy-dev\",\"params\":[{\"name\":\"COMMANDS\",\"value\":\"echo \\\"Deploying latest image of petclinic to petclinic-dev\\\"\\noc set image dc/petclinic petclinic=\\\"$(tasks.build-image.results.pushed-image-tag)\\\" -n petclinic-dev\\noc rollout latest dc/petclinic -n petclinic-dev\\n\\necho \\\"Waiting for deployment to complete\\\"\\noc rollout status dc/petclinic -n petclinic-dev\\n\"}],\"runAfter\":[\"build-image\",\"release-app\"],\"taskRef\":{\"name\":\"openshift-client\"}},{\"name\":\"prompt-stage\",\"params\":[{\"name\":\"webhook-secret\",\"value\":\"slack-webhook-secret\"},{\"name\":\"message-payload-configmap\",\"value\":\"slack-message-payload\"},{\"name\":\"callback-payload\",\"value\":\"$(tasks.set-build-version.results.build-number)\"}],\"runAfter\":[\"deploy-dev\"],\"taskRef\":{\"name\":\"prompt-slack\"}}],\"workspaces\":[{\"name\":\"local-maven-source\"},{\"name\":\"local-maven-repo\"}]}}\n"
+        },
+        "creationTimestamp": "2020-07-06T01:31:06Z",
+        "generateName": "petclinic-dev-pipeline-tomcat-",
+        "generation": 1,
+        "labels": {
+            "tekton.dev/pipeline": "petclinic-dev-pipeline-tomcat-workspace"
+        },
+        "name": "petclinic-dev-pipeline-tomcat-rt5dm",
+        "namespace": "petclinic-cicd",
+        "resourceVersion": "4341210",
+        "selfLink": "/apis/tekton.dev/v1beta1/namespaces/petclinic-cicd/pipelineruns/petclinic-dev-pipeline-tomcat-rt5dm",
+        "uid": "0193abc7-d954-4e90-a3ab-6ef33e9bcee5"
+    },
+    "spec": {
+        "pipelineRef": {
+            "name": "petclinic-dev-pipeline-tomcat-workspace"
+        },
+        "resources": [
+            {
+                "name": "app-image",
+                "resourceRef": {
+                    "name": "petclinic-image"
+                }
+            }
+        ],
+        "serviceAccountName": "pipeline",
+        "timeout": "1h0m0s",
+        "workspaces": [
+            {
+                "name": "local-maven-repo",
+                "persistentVolumeClaim": {
+                    "claimName": "maven-repo-pvc"
+                }
+            },
+            {
+                "name": "local-maven-source",
+                "persistentVolumeClaim": {
+                    "claimName": "maven-source-pvc"
+                }
+            }
+        ]
+    },
+    "status": {
+        "conditions": [
+            {
+                "lastTransitionTime": "2020-07-06T01:33:50Z",
+                "message": "Tasks Completed: 2, Incomplete: 7, Skipped: 0",
+                "reason": "Running",
+                "status": "Unknown",
+                "type": "Succeeded"
+            }
+        ],
+        "startTime": "2020-07-06T01:31:06Z",
+        "taskRuns": {
+            "petclinic-dev-pipeline-tomcat-rt5dm-build-app-wsrm8": {
+                "pipelineTaskName": "build-app",
+                "status": {
+                    "conditions": [
+                        {
+                            "lastTransitionTime": "2020-07-06T01:33:56Z",
+                            "message": "Not all Steps in the Task have finished executing",
+                            "reason": "Running",
+                            "status": "Unknown",
+                            "type": "Succeeded"
+                        }
+                    ],
+                    "podName": "petclinic-dev-pipeline-tomcat-rt5dm-build-app-wsrm8-pod-wwjpl",
+                    "startTime": "2020-07-06T01:33:50Z",
+                    "steps": [
+                        {
+                            "container": "step-mvn",
+                            "imageID": "gcr.io/cloud-builders/mvn@sha256:17ff6f81269b9e6050e0c543841d953195d4b380fd40438c42fa9ef546888983",
+                            "name": "mvn",
+                            "running": {
+                                "startedAt": "2020-07-06T01:33:56Z"
+                            }
+                        }
+                    ]
+                }
+            },
+            "petclinic-dev-pipeline-tomcat-rt5dm-checkout-qql7m": {
+                "pipelineTaskName": "checkout",
+                "status": {
+                    "completionTime": "2020-07-06T01:31:27Z",
+                    "conditions": [
+                        {
+                            "lastTransitionTime": "2020-07-06T01:31:27Z",
+                            "message": "All Steps have completed executing",
+                            "reason": "Succeeded",
+                            "status": "True",
+                            "type": "Succeeded"
+                        }
+                    ],
+                    "podName": "petclinic-dev-pipeline-tomcat-rt5dm-checkout-qql7m-pod-pr9wd",
+                    "resourcesResult": [
+                        {
+                            "key": "commit",
+                            "resourceRef": {},
+                            "value": "b81eb441685124ee40d42e074c26f43a0d94217e"
+                        }
+                    ],
+                    "startTime": "2020-07-06T01:31:06Z",
+                    "steps": [
+                        {
+                            "container": "step-clone",
+                            "imageID": "gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init@sha256:4c673db1f46dafbc030f2a79c9d4449c776e75804c83dd404e48204d89da554e",
+                            "name": "clone",
+                            "terminated": {
+                                "containerID": "cri-o://4718004bb57e091cc82e3dcd6858cd08d77623066372e64dbae498a8df0e4141",
+                                "exitCode": 0,
+                                "finishedAt": "2020-07-06T01:31:26Z",
+                                "message": "[{\"key\":\"commit\",\"value\":\"b81eb441685124ee40d42e074c26f43a0d94217e\",\"resourceRef\":{}}]",
+                                "reason": "Completed",
+                                "startedAt": "2020-07-06T01:31:26Z"
+                            }
+                        }
+                    ]
+                }
+            },
+            "petclinic-dev-pipeline-tomcat-rt5dm-set-build-version-5bgt9": {
+                "pipelineTaskName": "set-build-version",
+                "status": {
+                    "completionTime": "2020-07-06T01:33:49Z",
+                    "conditions": [
+                        {
+                            "lastTransitionTime": "2020-07-06T01:33:49Z",
+                            "message": "All Steps have completed executing",
+                            "reason": "Succeeded",
+                            "status": "True",
+                            "type": "Succeeded"
+                        }
+                    ],
+                    "podName": "petclinic-dev-pipeline-tomcat-rt5dm-set-build-version-5bg-6ngbt",
+                    "startTime": "2020-07-06T01:31:27Z",
+                    "steps": [
+                        {
+                            "container": "step-generate-buildid",
+                            "imageID": "gcr.io/tekton-releases/dogfooding/tkn@sha256:82c9a15557482023b8b4d84ad8b35ce4a7521808610f834391fa6fe43e82262b",
+                            "name": "generate-buildid",
+                            "terminated": {
+                                "containerID": "cri-o://d4e2bda828f5820676b2c81f8086c82200b1ed7341ef06c1f1754de84985029e",
+                                "exitCode": 0,
+                                "finishedAt": "2020-07-06T01:31:55Z",
+                                "message": "[{\"key\":\"build-number\",\"value\":\"rt5dm\",\"resourceRef\":{},\"type\":\"TaskRunResult\"}]",
+                                "reason": "Completed",
+                                "startedAt": "2020-07-06T01:31:55Z"
+                            }
+                        },
+                        {
+                            "container": "step-get-base-version",
+                            "imageID": "gcr.io/cloud-builders/mvn@sha256:17ff6f81269b9e6050e0c543841d953195d4b380fd40438c42fa9ef546888983",
+                            "name": "get-base-version",
+                            "terminated": {
+                                "containerID": "cri-o://4bfc0729d7c7d105777783a2ea0ea14946e71afe2f56738ad9befb41277931c3",
+                                "exitCode": 0,
+                                "finishedAt": "2020-07-06T01:31:56Z",
+                                "message": "[{\"key\":\"build-id\",\"value\":\"5.2.0-rt5dm\",\"resourceRef\":{},\"type\":\"TaskRunResult\"},{\"key\":\"build-number\",\"value\":\"rt5dm\",\"resourceRef\":{},\"type\":\"TaskRunResult\"}]",
+                                "reason": "Completed",
+                                "startedAt": "2020-07-06T01:31:56Z"
+                            }
+                        },
+                        {
+                            "container": "step-set-version",
+                            "imageID": "gcr.io/cloud-builders/mvn@sha256:17ff6f81269b9e6050e0c543841d953195d4b380fd40438c42fa9ef546888983",
+                            "name": "set-version",
+                            "terminated": {
+                                "containerID": "cri-o://fa0031fcec15ffcb36d6737028356c0f1da992061082a8359e615ca03bae601f",
+                                "exitCode": 0,
+                                "finishedAt": "2020-07-06T01:33:49Z",
+                                "message": "[{\"key\":\"build-id\",\"value\":\"5.2.0-rt5dm\",\"resourceRef\":{},\"type\":\"TaskRunResult\"},{\"key\":\"build-number\",\"value\":\"rt5dm\",\"resourceRef\":{},\"type\":\"TaskRunResult\"}]",
+                                "reason": "Completed",
+                                "startedAt": "2020-07-06T01:31:56Z"
+                            }
+                        },
+                        {
+                            "container": "step-debug-version",
+                            "imageID": "gcr.io/cloud-builders/mvn@sha256:17ff6f81269b9e6050e0c543841d953195d4b380fd40438c42fa9ef546888983",
+                            "name": "debug-version",
+                            "terminated": {
+                                "containerID": "cri-o://09aa53f1368a13938a7c7c1b578513e2212ac555a6fcededaae8b813742e48ca",
+                                "exitCode": 0,
+                                "finishedAt": "2020-07-06T01:33:49Z",
+                                "message": "[{\"key\":\"build-id\",\"value\":\"5.2.0-rt5dm\",\"resourceRef\":{},\"type\":\"TaskRunResult\"},{\"key\":\"build-number\",\"value\":\"rt5dm\",\"resourceRef\":{},\"type\":\"TaskRunResult\"}]",
+                                "reason": "Completed",
+                                "startedAt": "2020-07-06T01:33:49Z"
+                            }
+                        }
+                    ],
+                    "taskResults": [
+                        {
+                            "name": "build-id",
+                            "value": "5.2.0-rt5dm"
+                        },
+                        {
+                            "name": "build-number",
+                            "value": "rt5dm"
+                        },
+                        {
+                            "name": "build-number",
+                            "value": "rt5dm"
+                        },
+                        {
+                            "name": "build-id",
+                            "value": "5.2.0-rt5dm"
+                        },
+                        {
+                            "name": "build-number",
+                            "value": "rt5dm"
+                        },
+                        {
+                            "name": "build-id",
+                            "value": "5.2.0-rt5dm"
+                        },
+                        {
+                            "name": "build-number",
+                            "value": "rt5dm"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
