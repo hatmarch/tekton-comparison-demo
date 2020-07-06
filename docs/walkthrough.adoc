@@ -50,12 +50,18 @@ tkn taskrun logs -L -f
 +
 ** You might want to pre-collapse sections of the document to make it more readable
 +
-. Open two terminal windows side by side
+. Open three terminal windows side by side
 +
 . In the second window, run the following command to show running pods that have to do with Tekton
 +
 ----
-watch -n 1 --exec oc get pods -n petclinic-cicd -l app.kubernetes.io/managed-by=tekton-pipelines --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{"pod: "}{.metadata.name}{"\n"}{range .status.containerStatuses[*]}{"\tname: "}{.name}{"\tstartedAt: "}[{.state.running.startedAt},{.state.terminated.startedAt}],{"\tfinishedAt: "}{.state.terminated.finishedAt}{"\n"}{end}'
+watch -n 1 --exec $DEMO_HOME/scripts/walkthrough/get-pods.sh Running
+----
++
+. In the third window, run the following command to show pods that have completed
++
+----
+watch -n 1 --exec $DEMO_HOME/scripts/walkthrough/get-pods.sh Succeeded
 ----
 +
 . `PipelineRun`: Show the yaml for `$DEMO_HOME/kube/tekton/pipelinerun/petclinic-dev-pipeline-tomcat-workspace-run.yaml`
@@ -83,9 +89,35 @@ tkn pipelinerun logs -L -f
 +
 . Wait until logs indicate that the build is done
 +
+. Show that there is a message from the slackbot in the slack channel
++
 . Go to the pipeline tab of OpenShift in the `petclinic-cicd` project
 +
 . Dig into the pipeline and show the different log stages
+
+== After Build and Deploy to Staging ==
+
+====
+Run the following commands as they are presented
+
+----
+$DEMO_HOME/scripts/walkthrough/port-forward.sh --project petclinic-cicd
+----
+
+You can always stop the port forwarding with this command:
+
+----
+$DEMO_HOME/scripts/walkthrough/port-forward.sh --stop
+----
+====
+
+. Open Two Browser Windows with Jenkins in one and Tekton (and link:https://app.slack.com/client/TMRJRG207/G016F1027EF[Slack]) in the other
+
+. Look at the unit tests
+
+. Look at the SonarQube integration
+
+. Look at the deploy to staging
 
 == Demo Setup ==
 
