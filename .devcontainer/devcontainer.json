@@ -15,6 +15,8 @@
 		"-e",  "DEMO_HOME=/workspaces/service-mesh-demo"
 		//"AWS_PROFILE=${env:AWS_PROFILE}"
 	],
+	// open these ports for port-forwarding to host during demo
+	"forwardPorts": [8081,9000],
 	"extensions": [
 		"vscjava.vscode-java-pack",
 		"redhat.vscode-xml",
