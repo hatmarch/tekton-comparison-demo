@@ -36,7 +36,7 @@ spec:
       echo "Current pipeline is ${CURRENT_PIPELINE} and current project is $CURRENT_PROJECT"
 
       BUILD_NUM=$(params.callback-payload)
-      BUILD_LOGS_URL_BASE="https://console-openshift-console.${DOMAIN}/k8s/ns/${CURRENT_PROJECT}/tekton.dev~v1alpha1~PipelineRun"
+      BUILD_LOGS_URL_BASE="https://console-openshift-console.${DOMAIN}/k8s/ns/${CURRENT_PROJECT}/tekton.dev~v1beta1~PipelineRun"
       BUILD_LOGS_URL="$BUILD_LOGS_URL_BASE/${CURRENT_PIPELINE}/"
       echo "Build logs url: ${BUILD_LOGS_URL}"
 
