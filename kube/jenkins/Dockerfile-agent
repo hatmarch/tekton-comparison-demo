@@ -1,0 +1,9 @@
+FROM openshift/jenkins-agent-maven-35-centos7
+
+USER root
+
+# overwrite existing oc with the absolute newest version of the openshift client
+RUN curl -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz | \
+    tar -xvzf - -C /usr/bin/ oc && chmod 755 /usr/bin/oc
+
+USER 1001

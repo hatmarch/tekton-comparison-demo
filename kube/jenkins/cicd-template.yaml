@@ -199,16 +199,15 @@ objects:
                   script {
                     openshift.withCluster() {
                       openshift.withProject(env.DEV_PROJECT) {
-                        // set the image on the dc
+                        // set the image on the deployment
                         devImageName = "${imageStreamService}/${env.DEV_PROJECT}/${imageName}:${devTag}"
-                        openshift.set("image", "dc/petclinic", "petclinic=${devImageName}")
+                        openshift.set("image", "deploy/petclinic", "petclinic=${devImageName}")
         
-                        // set the VERSION env variable on the dc
-                        openshift.set("env", "dc/petclinic", "VERSION='${devTag} (${env.DEV_PROJECT})'")
+                        // set the VERSION env variable on the deployment
+                        openshift.set("env", "deploy/petclinic", "VERSION='${devTag} (${env.DEV_PROJECT})'")
 
-                        def dc = openshift.selector("dc", "petclinic")
-                        dc.rollout().latest()
-                        dc.rollout().status() // wait for rollout to finish
+                        // The deployment should already be rolling out with the image change
+                        openshift.raw("rollout status deploy/petclinic")
                       }
                     }
                   }
@@ -242,14 +241,13 @@ objects:
                   script {
                     openshift.withCluster() {
                       openshift.withProject(env.STAGE_PROJECT) {
-                        openshift.set("image", "dc/petclinic", "petclinic=${imageStreamService}/${env.STAGE_PROJECT}/petclinic:stage")
+                        openshift.set("image", "deploy/petclinic", "petclinic=${imageStreamService}/${env.STAGE_PROJECT}/petclinic:stage")
         
-                        // set the VERSION env variable on the dc
-                        openshift.set("env", "dc/petclinic", "VERSION='${devTag} (${env.STAGE_PROJECT})'")
+                        // set the VERSION env variable on the deployment
+                        openshift.set("env", "deploy/petclinic", "VERSION='${devTag} (${env.STAGE_PROJECT})'")
 
-                        def dc = openshift.selector("dc", "petclinic")
-                        dc.rollout().latest()
-                        dc.rollout().status()  // wait for rollout to finish  
+                        // The deployment should already be rolling out with the image change
+                        openshift.raw("rollout status deploy/petclinic")
                       }
                     }
                   }
@@ -290,7 +288,7 @@ objects:
         <containers>
           <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
             <name>jnlp</name>
-            <image>openshift/jenkins-agent-maven-35-centos7</image>
+            <image>quay.io/mhildenb/jenkins-maven-agent:1.0</image>
             <privileged>false</privileged>
             <alwaysPullImage>false</alwaysPullImage>
             <workingDir>/tmp</workingDir>
@@ -368,22 +366,22 @@ objects:
             oc label dc jenkins app=jenkins --overwrite 
             
             # dev project
-            oc expose dc/petclinic --port=8080 -n ${DEV_PROJECT}
-            oc expose svc/petclinic -n ${DEV_PROJECT}
+            # oc expose dc/petclinic --port=8080 -n ${DEV_PROJECT}
+            # oc expose svc/petclinic -n ${DEV_PROJECT}
             # enable java debugging
-            oc set env dc/petclinic -n ${DEV_PROJECT} -e"JAVA_OPTS=-Xdebug -Xrunjdwp:transport=dt_socket,address=5000,server=y,suspend=n"
+            oc set env deploy/petclinic -n ${DEV_PROJECT} -e"JAVA_OPTS=-Xdebug -Xrunjdwp:transport=dt_socket,address=5000,server=y,suspend=n"
             # FIXME: Add Health Checks
             # oc set probe dc/tasks --readiness --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=9 -n ${DEV_PROJECT}
             # oc set probe dc/tasks --liveness  --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=9 -n ${DEV_PROJECT}
-            oc rollout cancel dc/petclinic -n ${STAGE_PROJECT}
+            # oc rollout cancel dc/petclinic -n ${STAGE_PROJECT}
 
             # stage project
-            oc expose dc/petclinic --port=8080 -n ${STAGE_PROJECT}
-            oc expose svc/petclinic -n ${STAGE_PROJECT}
+            # oc expose dc/petclinic --port=8080 -n ${STAGE_PROJECT}
+            # oc expose svc/petclinic -n ${STAGE_PROJECT}
             # FIXME: Add Health Checks
             # oc set probe dc/tasks --readiness --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=10 -n ${STAGE_PROJECT}
             # oc set probe dc/tasks --liveness  --get-url=http://:8080/ws/demo/healthcheck --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=10 -n ${STAGE_PROJECT}
-            oc rollout cancel dc/petclinic -n ${DEV_PROJECT}
+            # oc rollout cancel dc/petclinic -n ${DEV_PROJECT}
 
             # # deploy gogs (FIXME: Only if necessary)
             # HOSTNAME=$(oc get route jenkins -o template --template='{{.spec.host}}' | sed "s/jenkins-${CICD_NAMESPACE}.//g")
