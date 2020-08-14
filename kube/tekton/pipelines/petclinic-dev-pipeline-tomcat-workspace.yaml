@@ -173,8 +173,9 @@ spec:
       value: |
           echo "Deploying latest image of petclinic to demo-dev"
           oc set image deploy/petclinic petclinic="$(tasks.build-image.results.pushed-image-tag)" -n demo-dev
+          oc set env deploy/petclinic VERSION="$(tasks.set-build-version.results.build-number) (petclinic-dev)" -n demo-dev
 
-          # deployments automatically attempt to roll themselves out on image changes...
+          # deployments automatically attempt to roll themselves out on changes to the deployment changes...
           echo "Waiting for deployment to complete"
           oc rollout status deploy/petclinic -n demo-dev
   - name: prompt-stage

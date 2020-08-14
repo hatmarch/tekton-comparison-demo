@@ -60,8 +60,8 @@ objects:
             echo "Deploying latest image of ${APP_NAME} to ${STAGING_PROJECT}"
             # NOTE: When setting container images, you need to specify the image in docker format and not by image stream
             DOCKER_IMAGE="`oc get is/${APP_NAME} -o jsonpath='{.status.dockerImageRepository}' -n ${STAGING_PROJECT}`:stage"
-            oc set image dc/${APP_NAME} ${APP_NAME}="${DOCKER_IMAGE}" -n ${STAGING_PROJECT}
-            oc rollout latest dc/${APP_NAME} -n ${STAGING_PROJECT}
+            oc set image deploy/${APP_NAME} ${APP_NAME}="${DOCKER_IMAGE}" -n ${STAGING_PROJECT}
+            oc set env deploy/${APP_NAME} VERSION="$(params.IMAGE_TAG) (petclinic-stage)" -n ${STAGING_PROJECT}
 
             echo "Waiting for deployment to complete"
-            oc rollout status dc/${APP_NAME} -n ${STAGING_PROJECT}
+            oc rollout status deploy/${APP_NAME} -n ${STAGING_PROJECT}
