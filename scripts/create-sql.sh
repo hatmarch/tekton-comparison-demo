@@ -2,7 +2,7 @@
 
 oc get project petclinic-dev 2>/dev/null || oc new-project petclinic-dev
 
-oc new-app openshift/mysql-persistent --name petclinic-mysql -p MYSQL_ROOT_PASSWORD=petclinic -p MYSQL_USER=pc \
+oc new-app openshift/mysql-persistent --as-deployment-config --name petclinic-mysql -p MYSQL_ROOT_PASSWORD=petclinic -p MYSQL_USER=pc \
     -p DATABASE_SERVICE_NAME=petclinic-mysql -p MYSQL_DATABASE=petclinic -p MYSQL_PASSWORD=petclinic
 
 sleep 1

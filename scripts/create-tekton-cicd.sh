@@ -169,12 +169,23 @@ command.install() {
   # NOTE: new build not needed for Tekton, but for Jenkins
   oc new-build --name=petclinic --image-stream=$cicd_prj/tomcat8-builder --binary=true -n $dev_prj
   oc new-app petclinic --allow-missing-images -n $dev_prj
-  oc set triggers dc -l app=petclinic --remove-all -n $dev_prj
+  # NOTE: With the latest version of the oc client (4.5 and above) new-app creates deployments by default, which is what 
+  # we want to happen here as the pipeline now depends on this behavior
+  sleep 2
+  if [[ -z "$(oc get deploy/petclinic -n $dev_prj 2>/dev/null)" ]]; then
+    echo "oc new-app did not create Deployments.  Update to latest version of openshift client"
+    exit 1
+  fi
   
   # stage
   oc new-app petclinic --allow-missing-images -n $stage_prj
-  oc set triggers dc -l app=petclinic --remove-all -n $stage_prj
-
+  # NOTE: With the latest version of the oc client (4.5 and above) new-app creates deployments by default, which is what 
+  # we want to happen here as the pipeline now depends on this behavior
+  sleep 2
+  if [[ -z "$(oc get deploy/petclinic -n $stage_prj 2>/dev/null)" ]]; then
+    echo "oc new-app did not create Deployments.  Update to latest version of openshift client"
+    exit 1
+  fi
 
   # Leave user in cicd project
   oc project $cicd_prj

@@ -172,11 +172,11 @@ spec:
     - name: COMMANDS
       value: |
           echo "Deploying latest image of petclinic to demo-dev"
-          oc set image dc/petclinic petclinic="$(tasks.build-image.results.pushed-image-tag)" -n demo-dev
-          oc rollout latest dc/petclinic -n demo-dev
+          oc set image deploy/petclinic petclinic="$(tasks.build-image.results.pushed-image-tag)" -n demo-dev
 
+          # deployments automatically attempt to roll themselves out on image changes...
           echo "Waiting for deployment to complete"
-          oc rollout status dc/petclinic -n demo-dev
+          oc rollout status deploy/petclinic -n demo-dev
   - name: prompt-stage
     taskRef:
       name: prompt-slack
