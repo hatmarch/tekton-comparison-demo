@@ -176,6 +176,8 @@ command.install() {
     echo "oc new-app did not create Deployments.  Update to latest version of openshift client"
     exit 1
   fi
+  oc expose deploy/petclinic --port=8080 -n $dev_prj
+  oc expose svc/petclinic -n $dev_prj
   
   # stage
   oc new-app petclinic --allow-missing-images -n $stage_prj
@@ -186,6 +188,8 @@ command.install() {
     echo "oc new-app did not create Deployments.  Update to latest version of openshift client"
     exit 1
   fi
+  oc expose deploy/petclinic --port=8080 -n $stage_prj
+  oc expose svc/petclinic -n $stage_prj
 
   # Leave user in cicd project
   oc project $cicd_prj
