@@ -62,6 +62,17 @@ spec:
           else:
             print("Created git repo spring-petclinic")
 
+          # create the argocd repo
+          data_repo = '{"clone_addr": "https://github.com/hatmarch/petclinic-gitops.git", "uid": 2, "repo_name": "petclinic-config"}'
+          headers = {'Content-Type': 'application/json'}
+          resp = requests.post(url = gogsURL + "/api/v1/repos/migrate", headers = headers, auth = (gogs_user, gogs_pwd), data = data_repo)  
+
+          if resp.status_code != 200 and resp.status_code != 201:
+            print("Error creating git repo (status code: {})".format(resp.status_code))
+            print(resp.content)
+          else:
+            print("Created git repo petclinic-config (gitops repo)")
+
           # configure webhook
           data_webhook = '{"type": "gogs", "config": { "url": "' + webhookURL + '", "content_type": "json"}, "events": ["push"], "active": true}'
           headers = {'Content-Type': 'application/json'}

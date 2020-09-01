@@ -8,6 +8,8 @@ declare SKIP_STAGING_PIPELINE=""
 declare USER=""
 declare PASSWORD=""
 declare slack_webhook_url=""
+declare INSTALL_PREREQ=""
+declare ARGO_OPERATOR_PRJ="argocd"
 
 valid_command() {
   local fn=$1; shift
@@ -46,7 +48,11 @@ while (( "$#" )); do
       shift 2
       ;;
     --skip-staging-pipeline)
-      SKIP_STAGING_PIPELINE=$1;
+      SKIP_STAGING_PIPELINE=$1
+      shift 1
+      ;;
+    -i|--install-prereq)
+      INSTALL_PREREQ=true
       shift 1
       ;;
     --)
@@ -64,6 +70,7 @@ done
 declare -r dev_prj="$PRJ_PREFIX-dev"
 declare -r stage_prj="$PRJ_PREFIX-stage"
 declare -r cicd_prj="$PRJ_PREFIX-cicd"
+declare -r argo_prj="$PRJ_PREFIX-uat"
 
 command.help() {
   cat <<-EOF
@@ -84,6 +91,7 @@ command.help() {
       -p|--project-prefix [string]   Prefix to be added to demo project names e.g. PREFIX-dev
       --user [string]                User name for the Red Hat registry
       --password [string]            Password for the Red Hat registry
+      -i|--install-prereq            Whether to install supporting operators and custom resources
 EOF
 }
 
@@ -104,6 +112,13 @@ command.install() {
   oc get ns $stage_prj 2>/dev/null  || { 
     oc new-project $stage_prj 
   }
+  oc get ns $argo_prj 2>/dev/null || {
+    oc new-project $argo_prj
+  }
+
+  if [[ -n "${INSTALL_PREREQ}" ]]; then
+    $SCRIPT_DIR/install-prereq.sh ${ARGO_OPERATOR_PRJ}
+  fi
 
   info "Create pull secret for redhat registry"
   $DEMO_HOME/scripts/util-create-pull-secret.sh registry-redhat-io --project $cicd_prj -u $USER -p $PASSWORD
@@ -190,6 +205,20 @@ command.install() {
   fi
   oc expose deploy/petclinic --port=8080 -n $stage_prj
   oc expose svc/petclinic -n $stage_prj
+
+  #
+  # Configure ArgoCD
+  # 
+  echo "Configuring ArgoCD for project $prj_argo"
+  argocd_pwd=$(oc get secret argocd-cluster -n ${ARGO_OPERATOR_PRJ} -o jsonpath='{.data.admin\.password}' | base64 -d)
+  argocd_url=$(oc get route argocd-server -n ${ARGO_OPERATOR_PRJ} -o template --template='{{.spec.host}}')
+  argocd login $argocd_url --username admin --password $argocd_pwd --insecure
+
+  oc policy add-role-to-user edit system:serviceaccount:${ARGO_OPERATOR_PRJ}:argocd-application-controller -n $argo_prj
+  argocd app create spring-petclinic-argo --repo http://gogs.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $argo_prj --dest-server https://kubernetes.default.svc --directory-recurse --revision uat
+  argocd app sync $argo_prj
+
+  echo "\n\nArgoCD URL: $argocd_url\nUser: admin\nPassword: $argocd_pwd"
 
   # Leave user in cicd project
   oc project $cicd_prj
