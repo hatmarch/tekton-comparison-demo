@@ -23,4 +23,8 @@ RUN curl -L https://github.com/tektoncd/cli/releases/download/v0.9.0/tkn_0.9.0_L
 RUN curl -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz | \
     tar -xvzf - -C /usr/bin/ oc && chmod 755 /usr/bin/oc
 
+# Add the argocd cli
+RUN curl -SL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/$(curl --silent "https://api.github.com/repos/argoproj/argo-cd/releases/latest" | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')/argocd-linux-amd64 && \
+    chmod +x /usr/local/bin/argocd
+
 USER jboss
