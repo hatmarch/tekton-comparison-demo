@@ -2,3 +2,7 @@
 	path = spring-framework-petclinic
 	url = https://github.com/hatmarch/spring-framework-petclinic.git
 	branch = spring-5.2.0
+[submodule "petclinic-gitops"]
+	path = petclinic-gitops
+	url = https://github.com/hatmarch/petclinic-gitops.git
+	branch = master
