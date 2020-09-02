@@ -81,7 +81,7 @@ EOF
 declare ARGO_SERVER_DEPLOY="deployment/argocd-server"
 
 echo -n "Waiting for the ArgoCD server to appear."
-while [ -z "$(oc get ${ARGO_SERVER_DEPLOY} 2>/dev/null)" ]; do
+while [ -z "$(oc get ${ARGO_SERVER_DEPLOY} -n ${prj_argo} 2>/dev/null)" ]; do
     sleep 1
     echo -n "."
 done 
