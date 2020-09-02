@@ -25,7 +25,7 @@ cat <<EOF | oc apply -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: pipelines
+  name: openshift-pipelines-operator
   namespace: openshift-operators
 spec:
   channel: preview
