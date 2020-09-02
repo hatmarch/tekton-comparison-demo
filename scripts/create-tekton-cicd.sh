@@ -175,9 +175,16 @@ command.install() {
   sed "s/@HOSTNAME/$GOGS_HOSTNAME/g" $DEMO_HOME/kube/config/gogs-configmap.yaml | oc create -f - -n $cicd_prj
   oc rollout status deployment/gogs -n $cicd_prj
   oc create -f $DEMO_HOME/kube/config/gogs-init-taskrun.yaml -n $cicd_prj
+  # output the logs of the latest task
+  tkn tr logs -L -f
 
   info "Configure nexus repo"
   $SCRIPT_DIR/util-config-nexus.sh -n $cicd_prj -u admin -p admin123
+
+  info "Seed maven cache in workspace"
+  oc apply -n $cicd_prj -f $DEMO_HOME/kube/config/copy-to-workspace-task.yaml 
+  oc create -n $cicd_prj -f $DEMO_HOME/kube/config/seed-cache-task-run.yaml
+  tkn tr logs -L -f
 
   # Create the target apps
   # dev
