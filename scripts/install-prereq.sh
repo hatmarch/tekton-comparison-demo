@@ -39,6 +39,17 @@ oc get ns $prj_argo 2>/dev/null  || {
 }
 sleep 2
 
+# install operator group
+cat <<EOF | oc apply -n $prj_argo -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: argocd-og
+spec:
+  targetNamespaces:
+  - $prj_argo
+EOF
+
 cat <<EOF | oc apply -n $prj_argo -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription

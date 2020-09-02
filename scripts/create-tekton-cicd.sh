@@ -209,7 +209,7 @@ command.install() {
   #
   # Configure ArgoCD
   # 
-  echo "Configuring ArgoCD for project $prj_argo"
+  echo "Configuring ArgoCD for project $argo_prj"
   argocd_pwd=$(oc get secret argocd-cluster -n ${ARGO_OPERATOR_PRJ} -o jsonpath='{.data.admin\.password}' | base64 -d)
   argocd_url=$(oc get route argocd-server -n ${ARGO_OPERATOR_PRJ} -o template --template='{{.spec.host}}')
   argocd login $argocd_url --username admin --password $argocd_pwd --insecure

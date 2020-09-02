@@ -58,6 +58,9 @@ remove-operator()
     CURRENT_CSV=$(oc get sub ${OPERATOR_NAME} -n ${OPERATOR_PRJ} -o yaml | grep " currentCSV:" | sed "s/.*currentCSV: //")
     oc delete sub ${OPERATOR_NAME} -n ${OPERATOR_PRJ} || true
     oc delete csv ${CURRENT_CSV} -n ${OPERATOR_PRJ} || true
+
+    # Attempt to remove any orphaned install plan named for the csv
+    oc get installplan | grep ${CURRENT_CSV} | awk {'print $1'} 2>/dev/null | xargs oc delete installplan 
 }
 
 remove-crds() 
