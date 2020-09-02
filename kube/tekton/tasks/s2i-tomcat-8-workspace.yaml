@@ -77,13 +77,13 @@ spec:
     - name: generate
       image: quay.io/openshift-pipeline/s2i
       workingDir: $(workspaces.maven-source.path)
-      resources:
-        requests:
-          cpu: 1
-          memory: 512Mi
-        limits:
-          cpu: 2
-          memory: 2Gi
+      # resources:
+      #   requests:
+      #     cpu: 1
+      #     memory: 512Mi
+      #   limits:
+      #     cpu: 2
+      #     memory: 2Gi
       command:
         - 's2i'
         - 'build'
@@ -113,13 +113,13 @@ spec:
           mountPath: /gen-source
       securityContext:
         privileged: true
-      resources:
-        requests:
-          cpu: 1
-          memory: 512Mi
-        limits:
-          cpu: 2
-          memory: 2Gi
+      # resources:
+      #   requests:
+      #     cpu: 1
+      #     memory: 512Mi
+      #   limits:
+      #     cpu: 2
+      #     memory: 2Gi
     - name: push
       image: quay.io/buildah/stable
       command: ['buildah', 'push', '--tls-verify=$(inputs.params.TLSVERIFY)', '$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)', 'docker://$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)']
