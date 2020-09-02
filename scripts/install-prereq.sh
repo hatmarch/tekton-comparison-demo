@@ -46,6 +46,7 @@ metadata:
   name: argocd-operator
 spec:
   channel: alpha
+  installPlanApproval: Automatic
   name: argocd-operator
   source: community-operators
   sourceNamespace: openshift-marketplace
@@ -66,6 +67,15 @@ spec:
     openShiftOAuth: true
 EOF
 
-oc rollout status deployment/argocd-server -n $prj_argo
+declare ARGO_SERVER_DEPLOY="deployment/argocd-server"
+
+echo -n "Waiting for the ArgoCD server to appear."
+while [ -z "$(oc get ${ARGO_SERVER_DEPLOY} 2>/dev/null)" ]; do
+    sleep 1
+    echo -n "."
+done 
+echo "found!"
+
+oc rollout status ${ARGO_SERVER_DEPLOY} -n $prj_argo
 
 
