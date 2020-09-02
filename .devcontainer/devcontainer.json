@@ -12,6 +12,7 @@
 		"-v", "${env:HOME}/.helm:/home/jboss/.helm",
 		"-v", "${env:HOME}/.ssh:/home/jboss/.ssh",
 		"-e", "AWS_PROFILE=redhat",
+		"-e", "REGION=ap-southeast-2",
 		"-e",  "DEMO_HOME=/workspaces/tekton-comparison-demo"
 		//"AWS_PROFILE=${env:AWS_PROFILE}"
 	],
