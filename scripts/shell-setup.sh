@@ -1,6 +1,15 @@
 #!/bin/bash
+declare SCRIPT=$0
+if [[ "$SCRIPT" == "/bin/bash" ]]; then
+    SCRIPT="${BASH_SOURCE}"
+fi
 
-export DEMO_HOME=$( cd "$(dirname "$0")/.." ; pwd -P )
+if [[ -z "${SCRIPT}" ]]; then
+    echo "BASH_SOURCE: ${BASH_SOURCE}, 0 is: $0"
+    echo "Failed to find the running name of the script, you need to set DEMO_HOME manually"
+fi
+
+export DEMO_HOME=$( cd "$(dirname "${SCRIPT}")/.." ; pwd -P )
 
 alias cpr='tkn pr cancel $(tkn pr list -o name --limit 1 | cut -f 2 -d "/")'
 alias ctr='tkn tr cancel $(tkn tr list -o name --limit 1 | cut -f 2 -d "/")'
