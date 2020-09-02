@@ -1,0 +1,4 @@
+FROM registry.access.redhat.com/ubi8/ubi-minimal
+
+# TODO: Update this with the directory where the mvn repo lives
+COPY .m2-spring-petclinic /maven-cache

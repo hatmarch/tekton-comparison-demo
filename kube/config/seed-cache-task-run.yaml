@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: seed-cache-
+spec:
+  taskRef:
+    kind: ClusterTask
+    name: copy-to-workspace
+  workspaces:
+    - name: workspace
+      persistentVolumeClaim:
+        claimName: maven-repo-pvc
+  params:
+    - name: SOURCE_DIRECTORY
+      value: "/maven-cache/repository"
+    - name: TARGET_DIRECTORY
+      value: "."
+    - name: SOURCE_IMAGE
+      value: "quay.io/mhildenb/tekton-demo-cache:latest"
+    - name: DELETE_TARGET
+      value: ''
+

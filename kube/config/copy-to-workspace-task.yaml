@@ -1,0 +1,48 @@
+# adapted from here since there is a problem getting this to write results
+apiVersion: tekton.dev/v1beta1
+kind: ClusterTask
+metadata:
+  name: copy-to-workspace
+spec:
+  params:
+    - name: SOURCE_DIRECTORY
+      type: string
+      description: The directory of the container to copy
+    - name: TARGET_DIRECTORY
+      type: string
+      description: The name of the target directory relative to the root of the workspace
+    - name: DELETE_TARGET
+      type: string
+      description: If non-null delete the target directory
+      default: "true"
+    - name: SOURCE_IMAGE
+      type: string
+      description: The image to copy from (must have a shell that can be found from /usr/bin/env)
+  workspaces:
+    - name: workspace
+      description: The persistent volume onto which to copy SOURCE_DIRECTORY
+  steps:
+    - name: copy-dir
+      image: $(params.SOURCE_IMAGE)
+      workingDir: $(workspaces.workspace.path)
+      script: |
+        #!/usr/bin/env bash
+
+        set -Eeuo pipefail
+
+        if [[ ! -d $(params.TARGET_DIRECTORY) ]]; then
+          echo "Creating target directory $(params.TARGET_DIRECTORY) at $(pwd)"
+          mkdir $(params.TARGET_DIRECTORY)
+        fi
+
+        cd $(params.TARGET_DIRECTORY)
+
+        # if we should remove the directory before copying and it exists
+        if [[ -n "$(params.DELETE_TARGET)" ]]; then
+          echo "Removing contents of target directory $(params.TARGET_DIRECTORY)"
+          rm -rf *
+          rm -rf .*
+        fi
+
+        echo "Copying contents of $(params.SOURCE_DIRECTORY) directory to $(workspaces.workspace.path)/$(params.TARGET_DIRECTORY)"
+        cp -rf $(params.SOURCE_DIRECTORY)/* .
