@@ -1,10 +1,11 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
   generateName: petclinic-dev-pipeline-tomcat-
 spec:
   pipelineRef:
     name: petclinic-dev-pipeline-tomcat-workspace
+#  limitRangeName: "limit-mem-cpu-per-container"
   resources:
   - name: app-image
     resourceRef:
@@ -16,4 +17,3 @@ spec:
   - name: local-maven-source
     persistentVolumeClaim:
       claimName: maven-source-pvc
-    
