@@ -192,7 +192,7 @@ function deploy() {
   # local template=https://raw.githubusercontent.com/$GITHUB_ACCOUNT/openshift-cd-demo/$GITHUB_REF/cicd-template.yaml
   local template=$SCRIPT_DIR/../kube/jenkins/cicd-template.yaml
   echo "Using template $template"
-  oc $ARG_OC_OPS new-app --as-deployment-config -f $template -p DEV_PROJECT=$dev_prj -p STAGE_PROJECT=$stage_prj -p DEPLOY_CHE=$ARG_DEPLOY_CHE -p EPHEMERAL=$ARG_EPHEMERAL -p ENABLE_QUAY=$ARG_ENABLE_QUAY -p QUAY_USERNAME=$ARG_QUAY_USER -p QUAY_PASSWORD=$ARG_QUAY_PASS -n $cicd_prj 
+  oc $ARG_OC_OPS new-app --as-deployment-config -f $template -p DEV_PROJECT=$dev_prj -p STAGE_PROJECT=$stage_prj -p CICD_PROJECT=$cicd_prj -p DEPLOY_CHE=$ARG_DEPLOY_CHE -p EPHEMERAL=$ARG_EPHEMERAL -p ENABLE_QUAY=$ARG_ENABLE_QUAY -p QUAY_USERNAME=$ARG_QUAY_USER -p QUAY_PASSWORD=$ARG_QUAY_PASS -n $cicd_prj 
 }
 
 function make_idle() {

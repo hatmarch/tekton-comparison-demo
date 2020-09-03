@@ -26,6 +26,10 @@ parameters:
   name: DEVELOPMENT_PROJECT
   value: petclinic-dev
   required: true
+- description: The name of the cicd project
+  displayName: CICD Project
+  name: CICD_PROJECT
+  value: petclinic-cicd
 - description: The name of the staging application (or image stream)
   displayName: Application Name (Staging)
   name: APP_NAME
@@ -55,7 +59,7 @@ objects:
         value: |
             set -e -o pipefail
             echo "Tagging image as the current stage image"
-            oc tag ${DEVELOPMENT_PROJECT}/${DEV_APP_NAME}:$(params.IMAGE_TAG) ${STAGING_PROJECT}/${APP_NAME}:stage
+            oc tag ${CICD_PROJECT}/${DEV_APP_NAME}:$(params.IMAGE_TAG) ${STAGING_PROJECT}/${APP_NAME}:stage
 
             echo "Deploying latest image of ${APP_NAME} to ${STAGING_PROJECT}"
             # NOTE: When setting container images, you need to specify the image in docker format and not by image stream

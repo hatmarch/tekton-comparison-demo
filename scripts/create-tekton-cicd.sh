@@ -155,14 +155,14 @@ command.install() {
   info "Deploying dev and staging pipelines"
   if [[ -z "$SKIP_STAGING_PIPELINE" ]]; then
     oc process -f $DEMO_HOME/kube/tekton/pipelines/petclinic-stage-pipeline-tomcat-template.yaml -p PROJECT_NAME=$cicd_prj \
-      -p DEVELOPMENT_PROJECT=$dev_prj -p STAGING_PROJECT=$stage_prj | oc apply -f - -n $cicd_prj
+      -p DEVELOPMENT_PROJECT=$dev_prj -p STAGING_PROJECT=$stage_prj -p CICD_PROJECT=$cicd_prj | oc apply -f - -n $cicd_prj
   else
     info "Skipping deploy to staging pipeline at user's request"
   fi
   sed "s/demo-dev/$dev_prj/g" $DEMO_HOME/kube/tekton/pipelines/petclinic-dev-pipeline-tomcat-workspace.yaml | oc apply -f - -n $cicd_prj
   
   # Install pipeline resources
-  sed "s/demo-dev/$dev_prj/g" $DEMO_HOME/kube/tekton/resources/petclinic-image.yaml | oc apply -f - -n $cicd_prj
+  sed "s/demo-cicd/$cicd_prj/g" $DEMO_HOME/kube/tekton/resources/petclinic-image.yaml | oc apply -f - -n $cicd_prj
   
   # FIXME: Decide which repo we want to trigger/pull from
   # sed "s#https://github.com/spring-projects/spring-petclinic#http://$GOGS_HOSTNAME/gogs/spring-petclinic.git#g" $DEMO_HOME/kube/tekton/resources/petclinic-git.yaml | oc apply -f - -n $cicd_prj
@@ -212,6 +212,15 @@ command.install() {
   fi
   oc expose deploy/petclinic --port=8080 -n $stage_prj
   oc expose svc/petclinic -n $stage_prj
+
+  echo "Setting permissions for service accounts into $cicd_prj"
+  arrPrjs=( $dev_prj $stage_prj $cicd_prj )
+  arrSAs=( default pipeline)
+  for prj in "${arrPrjs[@]}"; do
+    for sa in "${arrSAs[@]}"; do
+      oc adm policy add-role-to-user system:image-puller system:serviceaccount:$prj:$sa -n $cicd_prj
+    done
+  done
 
   #
   # Configure ArgoCD

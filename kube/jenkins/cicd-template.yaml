@@ -18,6 +18,10 @@ parameters:
   value: stage
   name: STAGE_PROJECT
   required: true
+- displayName: CICD project name
+  value: cicd
+  name: CICD_PROJECT
+  required: true
 - displayName: Deploy Eclipse Che
   description: Deploy Eclipse Che in order to use as an online IDE for changing code in this demo
   value: "false"
@@ -92,6 +96,8 @@ objects:
           value: ${DEV_PROJECT}
         - name: STAGE_PROJECT
           value: ${STAGE_PROJECT}
+        - name: CICD_PROJECT
+          value: ${CICD_PROJECT}
         - name: ENABLE_QUAY
           value: ${ENABLE_QUAY}
         jenkinsfile: |-
@@ -200,7 +206,7 @@ objects:
                     openshift.withCluster() {
                       openshift.withProject(env.DEV_PROJECT) {
                         // set the image on the deployment
-                        devImageName = "${imageStreamService}/${env.DEV_PROJECT}/${imageName}:${devTag}"
+                        devImageName = "${imageStreamService}/${env.CICD_PROJECT}/${imageName}:${devTag}"
                         openshift.set("image", "deploy/petclinic", "petclinic=${devImageName}")
         
                         // set the VERSION env variable on the deployment
@@ -230,7 +236,7 @@ objects:
                           sh "skopeo copy docker://quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:latest docker://quay.io/${QUAY_USERNAME}/${QUAY_REPOSITORY}:stage --src-creds \"$QUAY_USER:$QUAY_PWD\" --dest-creds \"$QUAY_USER:$QUAY_PWD\" --src-tls-verify=false --dest-tls-verify=false"
                         }
                       } else {
-                        openshift.tag("${env.DEV_PROJECT}/${imageName}:${devTag}", "${env.STAGE_PROJECT}/petclinic:stage")
+                        openshift.tag("${env.CICD_PROJECT}/${imageName}:${devTag}", "${env.STAGE_PROJECT}/petclinic:stage")
                       }
                     }
                   }

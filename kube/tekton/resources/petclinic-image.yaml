@@ -7,5 +7,5 @@ spec:
   - name: url
 # NOTE: This file is pre-processed by the cicd installation script and replaces "demo-dev" with the proper
 # Demo Dev project name
-    value: image-registry.openshift-image-registry.svc:5000/demo-dev/petclinic
+    value: image-registry.openshift-image-registry.svc:5000/demo-cicd/petclinic
   type: image
