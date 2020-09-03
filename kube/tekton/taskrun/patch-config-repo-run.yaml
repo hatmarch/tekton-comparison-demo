@@ -1,0 +1,21 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: patch-config-repo-run-
+spec:
+  taskRef:
+    name: update-config
+  workspaces:
+  - name: input
+    persistentVolumeClaim:
+      claimName: config-source-pvc
+  resources:
+    inputs:
+    - name: app-image
+      resourceRef: 
+        name: petclinic-image
+  params:
+  - name: IMAGE_TAG
+    value: '484nd'
+#   - name: PATH_CONTEXT
+#     value: 'uat'

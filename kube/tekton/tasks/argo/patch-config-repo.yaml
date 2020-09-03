@@ -15,19 +15,27 @@ spec:
       default: latest 
     - name: PATH_CONTEXT
       description: The location relative to the start of the input workspace where the root of the config repo is
+      default: "."
   steps:
     - name: update-deployment
-      workingDir: $(workspaces.input.path)
+      workingDir: $(workspaces.input.path)/$(params.PATH_CONTEXT)
       image: quay.io/openshift/origin-cli:latest
       script: |
         #!/usr/bin/env bash
 
         set -Eeuo pipefail
 
+        pwd
+
         cd app
         DEPLOY_FILE="deployment.yaml"
+        DEPLOY_CONTENTS=$(cat ${DEPLOY_FILE})
+        echo "Contents of $(pwd)/deployment.yaml are: ${DEPLOY_CONTENTS}"
+
         # NOTE: start with cat and echo the file so that we can write back to it..otherwise it gets cleared before we start reading
-        echo "$(cat ${DEPLOY_FILE})" | oc patch --local=true -f - -o yaml -p \
+        echo "${DEPLOY_CONTENTS}" | oc patch --local=true -f - -o yaml -p \
             '{"spec":{"template":{"spec":{"containers":[{"name":"petclinic", "image":"'"$(resources.inputs.app-image.url):$(params.IMAGE_TAG)"'" }]}}}}' \
             | oc patch --local=true -f - -o yaml -p \
             '{"spec":{"template":{"spec":{"containers":[{"name":"petclinic", "env":[{"name":"VERSION", "value": "'"$(params.IMAGE_TAG) petclinic-uat"'"}]}]}}}}' > ${DEPLOY_FILE}
+
+        echo "Contents after are: $(cat ${DEPLOY_FILE})"

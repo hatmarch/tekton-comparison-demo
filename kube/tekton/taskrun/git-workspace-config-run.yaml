@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: git-workspace-config-run-
+spec:
+  taskRef:
+    name: git-clone
+  workspaces:
+  - name: output
+    persistentVolumeClaim:
+      claimName: config-source-pvc
+  params:
+  - name: url
+    value: 'http://gogs.petclinic-cicd:3000/gogs/petclinic-config.git'
+  - name: revision
+    value: 'uat'
+  - name: message
+    value: 'built by task run'
+  # by setting subdirectory parameters to ""
+  # checkout will clone to the root of the local-maven-source
+  # volume, which will allow other tasks to find this directory
+  # at their name for the mount point
+  - name: subdirectory
+    value: ""
+  - name: deleteExisting
+    value: "true"
