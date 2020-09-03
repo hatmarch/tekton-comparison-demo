@@ -1,0 +1,33 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: update-config
+spec:
+  workspaces:
+    - name: input
+      description: The config repo cloned into this volume
+  resources:
+    inputs:
+    - name: app-image
+      type: image
+  params:
+    - name: IMAGE_TAG
+      default: latest 
+    - name: PATH_CONTEXT
+      description: The location relative to the start of the input workspace where the root of the config repo is
+  steps:
+    - name: update-deployment
+      workingDir: $(workspaces.input.path)
+      image: quay.io/openshift/origin-cli:latest
+      script: |
+        #!/usr/bin/env bash
+
+        set -Eeuo pipefail
+
+        cd app
+        DEPLOY_FILE="deployment.yaml"
+        # NOTE: start with cat and echo the file so that we can write back to it..otherwise it gets cleared before we start reading
+        echo "$(cat ${DEPLOY_FILE})" | oc patch --local=true -f - -o yaml -p \
+            '{"spec":{"template":{"spec":{"containers":[{"name":"petclinic", "image":"'"$(resources.inputs.app-image.url):$(params.IMAGE_TAG)"'" }]}}}}' \
+            | oc patch --local=true -f - -o yaml -p \
+            '{"spec":{"template":{"spec":{"containers":[{"name":"petclinic", "env":[{"name":"VERSION", "value": "'"$(params.IMAGE_TAG) petclinic-uat"'"}]}]}}}}' > ${DEPLOY_FILE}
