@@ -1,4 +1,4 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: set-build-version
@@ -8,16 +8,15 @@ spec:
     description: The folder where all the building happens
   - name: maven-repo
     description: The folder where all the maven artefacts should be stored
-  inputs:
-    params:
-    - name: base-version-override
-      description: We'll normally get our base version from the pom, but we can override that here.
-      type: string
-      default: ""
-    - name: build-number-override
-      type: string
-      description: Whether we want to override the base build number.
-      default: ""
+  params:
+  - name: base-version-override
+    description: We'll normally get our base version from the pom, but we can override that here.
+    type: string
+    default: ""
+  - name: build-number-override
+    type: string
+    description: Whether we want to override the base build number.
+    default: ""
   results:
     - name: build-id
       description: ID of the current build
@@ -32,7 +31,7 @@ spec:
       script: |
         #!/usr/bin/env sh
         echo "starting build number generation"
-        BUILD_NUM="$(inputs.params.build-number-override)"
+        BUILD_NUM="$(params.build-number-override)"
         if [[ -z "${BUILD_NUM}" ]]; then
           # FIXME: This won't work properly when in TaskRun
           BUILD_NUM=`/usr/local/bin/tkn pr list --limit 1 -o jsonpath='{.items[0].metadata.name}' | sed -n 's/^.*-\([^-]*\)$/\1/p'`
@@ -46,7 +45,7 @@ spec:
       workingDir: $(workspaces.maven-source.path)
       script: |
         #!/usr/bin/env bash
-        BASE_VERSION=$(inputs.params.base-version-override)
+        BASE_VERSION=$(params.base-version-override)
         
         if [[ -z "${BASE_VERSION}" ]]; then
 

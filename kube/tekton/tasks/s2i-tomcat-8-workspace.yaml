@@ -3,7 +3,7 @@
 # source: https://raw.githubusercontent.com/openshift/pipelines-catalog/release-v0.8/s2i-java-8/s2i-java-8-task.yaml
 #
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: s2i-tomcat-8-workspace
@@ -13,41 +13,36 @@ spec:
     description: Persistent volume where everything is getting compiled
     mountPath: /workspace/source
     readOnly: true
-  inputs:
-  # does not take a repo as an input since everything it needs should already be on the workspace
-  #   resources:
-  #     - name: source
-  #       type: git
-    params:
-      - name: PATH_CONTEXT
-        description: The location of the path to run s2i from.  Set this to target to do a binary build.
-        default: .
-        type: string
-      - name: TLSVERIFY
-        description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
-        default: "true"
-        type: string
-      - name: MAVEN_ARGS_APPEND
-        description: Additional Maven arguments
-        default: ""
-        type: string
-      - name: MAVEN_CLEAR_REPO
-        description: Remove the Maven repository after the artifact is built
-        default: "false"
-        type: string
-      - name: MAVEN_MIRROR_URL
-        description: The base URL of a mirror used for retrieving artifacts
-        default: ""
-        type: string
-      - name: IMAGE_TAG
-        description: The tag to put on the resulting image
-        default: "latest"
-        type: string
+  params:
+    - name: PATH_CONTEXT
+      description: The location of the path to run s2i from.  Set this to target to do a binary build.
+      default: .
+      type: string
+    - name: TLSVERIFY
+      description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
+      default: "true"
+      type: string
+    - name: MAVEN_ARGS_APPEND
+      description: Additional Maven arguments
+      default: ""
+      type: string
+    - name: MAVEN_CLEAR_REPO
+      description: Remove the Maven repository after the artifact is built
+      default: "false"
+      type: string
+    - name: MAVEN_MIRROR_URL
+      description: The base URL of a mirror used for retrieving artifacts
+      default: ""
+      type: string
+    - name: IMAGE_TAG
+      description: The tag to put on the resulting image
+      default: "latest"
+      type: string
   results:
     - name: pushed-image-tag
       description: the full name of the image (including tag) that was pushed in this task
-  outputs:
-    resources:
+  resources:
+    outputs:
       - name: image
         type: image
   steps:
@@ -59,13 +54,13 @@ spec:
         - '-c'
       args:
         - |-
-          echo "MAVEN_CLEAR_REPO=$(inputs.params.MAVEN_CLEAR_REPO)" > env-file
+          echo "MAVEN_CLEAR_REPO=$(params.MAVEN_CLEAR_REPO)" > env-file
 
-          [[ '$(inputs.params.MAVEN_ARGS_APPEND)' != "" ]] &&
-            echo "MAVEN_ARGS_APPEND=$(inputs.params.MAVEN_ARGS_APPEND)" >> env-file
+          [[ '$(params.MAVEN_ARGS_APPEND)' != "" ]] &&
+            echo "MAVEN_ARGS_APPEND=$(params.MAVEN_ARGS_APPEND)" >> env-file
 
-          [[ '$(inputs.params.MAVEN_MIRROR_URL)' != "" ]] &&
-            echo "MAVEN_MIRROR_URL=$(inputs.params.MAVEN_MIRROR_URL)" >> env-file
+          [[ '$(params.MAVEN_MIRROR_URL)' != "" ]] &&
+            echo "MAVEN_MIRROR_URL=$(params.MAVEN_MIRROR_URL)" >> env-file
 
           echo "Generated Env file"
           echo "------------------------------"
@@ -87,7 +82,7 @@ spec:
       command:
         - 's2i'
         - 'build'
-        - '$(inputs.params.PATH_CONTEXT)'
+        - '$(params.PATH_CONTEXT)'
         - 'image-registry.openshift-image-registry.svc:5000/petclinic-cicd/tomcat8-builder'
         - '--image-scripts-url'
         - 'image:///usr/local/s2i'
@@ -105,7 +100,7 @@ spec:
     - name: build
       image: quay.io/buildah/stable
       workingDir: /gen-source
-      command: ['buildah', 'bud', '--tls-verify=$(inputs.params.TLSVERIFY)', '--layers', '-f', '/gen-source/Dockerfile.gen', '-t', '$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)', '.']
+      command: ['buildah', 'bud', '--tls-verify=$(params.TLSVERIFY)', '--layers', '-f', '/gen-source/Dockerfile.gen', '-t', '$(resources.outputs.image.url):$(params.IMAGE_TAG)', '.']
       volumeMounts:
         - name: varlibcontainers
           mountPath: /var/lib/containers
@@ -122,7 +117,7 @@ spec:
       #     memory: 2Gi
     - name: push
       image: quay.io/buildah/stable
-      command: ['buildah', 'push', '--tls-verify=$(inputs.params.TLSVERIFY)', '$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)', 'docker://$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)']
+      command: ['buildah', 'push', '--tls-verify=$(params.TLSVERIFY)', '$(resources.outputs.image.url):$(params.IMAGE_TAG)', 'docker://$(resources.outputs.image.url):$(params.IMAGE_TAG)']
       volumeMounts:
         - name: varlibcontainers
           mountPath: /var/lib/containers
@@ -132,7 +127,7 @@ spec:
       image: registry.access.redhat.com/ubi8/ubi-minimal:latest
       script: |
         #!/usr/bin/env bash
-        PUSHED_IMAGE_TAG="$(outputs.resources.image.url):$(inputs.params.IMAGE_TAG)"
+        PUSHED_IMAGE_TAG="$(resources.outputs.image.url):$(params.IMAGE_TAG)"
         echo "Pushed image tagged as: ${PUSHED_IMAGE_TAG}."
   
         echo "${PUSHED_IMAGE_TAG}" | tr -d "\n" | tee $(results.pushed-image-tag.path)

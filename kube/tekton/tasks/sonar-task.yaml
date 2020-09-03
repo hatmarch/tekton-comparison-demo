@@ -1,5 +1,5 @@
 ---
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: sonar
@@ -8,20 +8,19 @@ spec:
   - name: maven-source
   - name: maven-repo
     description: Where the maven artefacts are stored
-  inputs:
-    params:
-    - name: SONAR_URL
-      description: The SonarQube url
-      type: string
-      default: http://sonarqube:9000
-    - name: MAVEN_SETTINGS_CONFIGMAP
-      description: The configmap containing Maven settings.xml
-      type: string
-      default: maven-settings
-    - name: MAVEN_PARAMETERS
-      description: Additional maven parameters
-      type: array
-      default: []
+  params:
+  - name: SONAR_URL
+    description: The SonarQube url
+    type: string
+    default: http://sonarqube:9000
+  - name: MAVEN_SETTINGS_CONFIGMAP
+    description: The configmap containing Maven settings.xml
+    type: string
+    default: maven-settings
+  - name: MAVEN_PARAMETERS
+    description: Additional maven parameters
+    type: array
+    default: []
   steps:
     - name: mvn
       image: gcr.io/cloud-builders/mvn
@@ -33,14 +32,14 @@ spec:
         - /var/config/settings.xml
         - install
         - sonar:sonar
-        - -Dsonar.host.url=$(inputs.params.SONAR_URL)
+        - -Dsonar.host.url=$(params.SONAR_URL)
         - -Dsonar.userHome=/tmp/sonar
         - -DskipTests
-        - $(inputs.params.MAVEN_PARAMETERS)
+        - $(params.MAVEN_PARAMETERS)
       volumeMounts:
         - name: maven-settings
           mountPath: /var/config
   volumes:
     - name: maven-settings
       configMap:
-        name: $(inputs.params.MAVEN_SETTINGS_CONFIGMAP)
+        name: $(params.MAVEN_SETTINGS_CONFIGMAP)
