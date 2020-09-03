@@ -70,7 +70,7 @@ done
 declare -r dev_prj="$PRJ_PREFIX-dev"
 declare -r stage_prj="$PRJ_PREFIX-stage"
 declare -r cicd_prj="$PRJ_PREFIX-cicd"
-declare -r argo_prj="$PRJ_PREFIX-uat"
+declare -r uat_prj="$PRJ_PREFIX-uat"
 
 command.help() {
   cat <<-EOF
@@ -112,8 +112,8 @@ command.install() {
   oc get ns $stage_prj 2>/dev/null  || { 
     oc new-project $stage_prj 
   }
-  oc get ns $argo_prj 2>/dev/null || {
-    oc new-project $argo_prj
+  oc get ns $uat_prj 2>/dev/null || {
+    oc new-project $uat_prj
   }
 
   if [[ -n "${INSTALL_PREREQ}" ]]; then
@@ -176,7 +176,7 @@ command.install() {
   oc rollout status deployment/gogs -n $cicd_prj
   oc create -f $DEMO_HOME/kube/config/gogs-init-taskrun.yaml -n $cicd_prj
   # output the logs of the latest task
-  tkn tr logs -L -f
+  tkn tr logs -L -f -n $cicd_prj
 
   info "Configure nexus repo"
   $SCRIPT_DIR/util-config-nexus.sh -n $cicd_prj -u admin -p admin123
@@ -184,7 +184,7 @@ command.install() {
   info "Seed maven cache in workspace"
   oc apply -n $cicd_prj -f $DEMO_HOME/kube/config/copy-to-workspace-task.yaml 
   oc create -n $cicd_prj -f $DEMO_HOME/kube/config/seed-cache-task-run.yaml
-  tkn tr logs -L -f
+  tkn tr logs -L -f -n $cicd_prj
 
   # Create the target apps
   # dev
@@ -216,14 +216,15 @@ command.install() {
   #
   # Configure ArgoCD
   # 
-  echo "Configuring ArgoCD for project $argo_prj"
+  echo "Configuring ArgoCD for project $uat_prj"
   argocd_pwd=$(oc get secret argocd-cluster -n ${ARGO_OPERATOR_PRJ} -o jsonpath='{.data.admin\.password}' | base64 -d)
   argocd_url=$(oc get route argocd-server -n ${ARGO_OPERATOR_PRJ} -o template --template='{{.spec.host}}')
   argocd login $argocd_url --username admin --password $argocd_pwd --insecure
 
-  oc policy add-role-to-user edit system:serviceaccount:${ARGO_OPERATOR_PRJ}:argocd-application-controller -n $argo_prj
-  argocd app create spring-petclinic-argo --repo http://gogs.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $argo_prj --dest-server https://kubernetes.default.svc --directory-recurse --revision uat
-  argocd app sync $argo_prj
+  # FIXME: Shouldn't this line be codified in the gitops repo?  This might be necessary for bootstrapping, but after that...
+  oc policy add-role-to-user edit system:serviceaccount:${ARGO_OPERATOR_PRJ}:argocd-application-controller -n $uat_prj
+  argocd app create petclinic-argo --repo http://gogs.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $uat_prj --dest-server https://kubernetes.default.svc --directory-recurse --revision uat
+  argocd app sync petclinic-argo
 
   echo "\n\nArgoCD URL: $argocd_url\nUser: admin\nPassword: $argocd_pwd"
 
