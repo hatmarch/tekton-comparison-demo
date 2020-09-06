@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e -u -o pipefail
+set -Ee -u -o pipefail
 declare -r SCRIPT_DIR=$(cd -P $(dirname $0) && pwd)
 declare PRJ_PREFIX="petclinic"
 declare COMMAND="help"
@@ -138,8 +138,7 @@ command.install() {
 
   info "Deploying CI/CD infra to $cicd_prj namespace"
   oc apply -R -f $DEMO_HOME/kube/cd -n $cicd_prj
-  GOGS_HOSTNAME=$(oc get route gogs -o template --template='{{.spec.host}}' -n $cicd_prj)
-
+  
   info "Deploying pipeline and tasks to $cicd_prj namespace"
   oc apply -f $DEMO_HOME/kube/tekton/tasks --recursive -n $cicd_prj
   oc apply -f $DEMO_HOME/kube/tekton/config -n $cicd_prj
@@ -149,6 +148,7 @@ command.install() {
   if [[ -z "${slack_webhook_url}" ]]; then
     info "NOTE: No slack webhook url is set.  You can add this later by running oc create secret generic slack-webhook-secret."
   else
+    oc delete secret slack-webhook-secret -n $cicd_prj || true
     oc create secret generic slack-webhook-secret --from-literal=url=${slack_webhook_url} -n $cicd_prj
   fi
 
@@ -171,10 +171,21 @@ command.install() {
   # Install pipeline triggers
   oc apply -f $DEMO_HOME/kube/tekton/triggers --recursive -n $cicd_prj
 
-  info "Initiatlizing git repository in Gogs and configuring webhooks"
-  sed "s/@HOSTNAME/$GOGS_HOSTNAME/g" $DEMO_HOME/kube/config/gogs-configmap.yaml | oc create -f - -n $cicd_prj
-  oc rollout status deployment/gogs -n $cicd_prj
-  oc create -f $DEMO_HOME/kube/config/gogs-init-taskrun.yaml -n $cicd_prj
+  info "Initiatlizing git repository in gitea and configuring webhooks"
+  oc apply -f $DEMO_HOME/kube/gitea/gitea-server-cr.yaml -n $cicd_prj
+  oc wait --for=condition=Running Gitea/gitea-server -n $cicd_prj --timeout=6m
+  echo -n "Waiting for gitea deployment to appear..."
+  while [[ -z "$(oc get deploy mygitea -n $cicd_prj 2>/dev/null)" ]]; do
+    echo -n "."
+    sleep 1
+  done
+  echo "done!"
+  oc rollout status deploy/mygitea -n $cicd_prj
+
+  # patch the created gitea service to select the proper pod
+ # oc patch svc/mygitea -p '{"spec":{"selector":{"app":"mygitea"}}}' -n $cicd_prj
+
+  oc create -f $DEMO_HOME/kube/gitea/gitea-init-taskrun.yaml -n $cicd_prj
   # output the logs of the latest task
   tkn tr logs -L -f -n $cicd_prj
 
@@ -232,7 +243,7 @@ command.install() {
 
   # FIXME: Shouldn't this line be codified in the gitops repo?  This might be necessary for bootstrapping, but after that...
   oc policy add-role-to-user edit system:serviceaccount:${ARGO_OPERATOR_PRJ}:argocd-application-controller -n $uat_prj
-  argocd app create petclinic-argo --repo http://gogs.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $uat_prj --dest-server https://kubernetes.default.svc --directory-recurse --revision uat
+  argocd app create petclinic-argo --repo http://mygitea.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $uat_prj --dest-server https://kubernetes.default.svc --directory-recurse --revision uat
   argocd app sync petclinic-argo
 
   echo "\n\nArgoCD URL: $argocd_url\nUser: admin\nPassword: $argocd_pwd"
@@ -241,47 +252,15 @@ command.install() {
   oc project $cicd_prj
 
   cat <<-EOF
-
-############################################################################
-############################################################################
-
-  CI/CD project is installed! 
-
-  NOTE: Your pipeline cannot currently be run from the UI due to its reliance on a (maven) workspace.
-  Instead you must kick of your pipeline in one of the following ways:
-
-  A. File
-
-    1) oc apply -f $DEMO_HOME/kube/tekton/pipelinerun/petclinic-dev-pipeline-tomcat-run.yaml
-       - This will use the defined pipeline resources and the maven workspace
-  
-  B. Github Deploy
-
-    1) Get the github trigger address
-
-    2) Log into your github repo and update the settings to point to the webhook (see also
-       $DEMO_HOME/docs/Walkthrough.adoc)
-  
-  C. Gogs Deploy
-
-  1) Go to spring-petclinic Git repository in Gogs:
-     http://$GOGS_HOSTNAME/gogs/spring-petclinic.git
-  
-  2) Log into Gogs with username/password: gogs/gogs
-      
-  3) Edit a file in the repository and commit to trigger the pipeline
-
-Finally, you can check the pipeline run logs in Dev Console or Tekton CLI:
-     
-    \$ tkn pipeline logs petclinic-dev-pipeline-tomcat -f -n $cicd_prj
-
-############################################################################
-############################################################################
+#####################################
+Installation finished successfully!
+#####################################
 EOF
 }
 
 command.start() {
-  oc create -f runs/pipeline-deploy-dev-run.yaml -n $cicd_prj
+  oc create -f $DEMO_HOME/kube/tekton/pipelinerun/petclinic-dev-pipeline-tomcat-workspace-run.yaml -n $cicd_prj
+  tkn pr logs -L -f -n $cicd_prj
 }
 
 command.uninstall() {
