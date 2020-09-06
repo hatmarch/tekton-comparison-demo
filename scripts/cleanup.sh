@@ -60,7 +60,7 @@ remove-operator()
     oc delete csv ${CURRENT_CSV} -n ${OPERATOR_PRJ} || true
 
     # Attempt to remove any orphaned install plan named for the csv
-    oc get installplan | grep ${CURRENT_CSV} | awk {'print $1'} 2>/dev/null | xargs oc delete installplan 
+    oc get installplan -n ${OPERATOR_PRJ} | grep ${CURRENT_CSV} | awk '{print $1}' 2>/dev/null | xargs oc delete installplan -n $OPERATOR_PRJ
 }
 
 remove-crds() 
@@ -92,6 +92,11 @@ main()
     done
 
     if [[ -n "${full_flag:-}" ]]; then
+        echo "Removing Gitea Operator"
+        oc delete project gpte-operators || true
+        oc delete clusterrole gitea-operator || true
+        remove-crds gitea || true
+
         remove-operator argocd-operator argocd || true
 
         remove-crds argo || true
