@@ -21,6 +21,8 @@ spec:
   workspaces:
     - name: workspace
       description: The persistent volume onto which to copy SOURCE_DIRECTORY
+    - name: dummy-source
+      description: Provided just to ensure that the source workspace PVC gets allocated to the same AZ as workspace
   steps:
     - name: copy-dir
       image: $(params.SOURCE_IMAGE)

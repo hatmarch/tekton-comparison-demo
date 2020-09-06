@@ -10,6 +10,12 @@ spec:
     - name: workspace
       persistentVolumeClaim:
         claimName: maven-repo-pvc
+    # NOTE: This workspace is not used for seeding the cache, but if we don't allocate both pvcs at the same
+    # time we could wind up in a situation where both wind up in different availability zones and then it won't 
+    # be possible to run a task that requires both workspaces.
+    - name: dummy-source
+      persistentVolumeClaim:
+        claimName: maven-source-pvc
   params:
     - name: SOURCE_DIRECTORY
       value: "/maven-cache/repository"
