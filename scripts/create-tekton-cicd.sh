@@ -131,7 +131,9 @@ command.install() {
 
   info "Configure service account permissions for builder"
   oc policy add-role-to-user system:image-puller system:serviceaccount:$dev_prj:builder -n $cicd_prj
-
+  oc policy add-role-to-user system:image-puller system:serviceaccount:$uat_prj:default -n $cicd_prj
+  oc policy add-role-to-user system:image-puller system:serviceaccount:$stage_prj:default -n $cicd_prj
+ 
   info "Configure service account permissions for pipeline"
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $dev_prj
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $stage_prj
@@ -244,7 +246,8 @@ command.install() {
 
   # FIXME: Shouldn't this line be codified in the gitops repo?  This might be necessary for bootstrapping, but after that...
   oc policy add-role-to-user edit system:serviceaccount:${ARGO_OPERATOR_PRJ}:argocd-application-controller -n $uat_prj
-  argocd app create petclinic-argo --repo http://gitea.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $uat_prj --dest-server https://kubernetes.default.svc --directory-recurse --revision uat
+  argocd app create petclinic-argo --repo http://gitea.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $uat_prj --dest-server https://kubernetes.default.svc \
+    --directory-recurse --revision uat --sync-policy automated --self-heal --auto-prune
   argocd app sync petclinic-argo
 
   echo "\n\nArgoCD URL: $argocd_url\nUser: admin\nPassword: $argocd_pwd"
