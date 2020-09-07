@@ -21,3 +21,11 @@ spec:
       params:
       - name: IMAGE_TAG
         value: $(params.image-label)
+      resources:
+        - name: app-image
+          resourceRef:
+            name: petclinic-image
+      workspaces:
+      - name: local-config-source
+        persistentVolumeClaim:
+          claimName: config-source-pvc

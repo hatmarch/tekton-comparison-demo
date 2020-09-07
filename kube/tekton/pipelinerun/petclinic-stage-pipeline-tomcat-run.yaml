@@ -1,0 +1,18 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: petclinic-stage-pipeline-tomcat-
+spec:
+  pipelineRef:
+    name: petclinic-deploy-stage-tomcat
+  resources:
+  - name: app-image
+    resourceRef:
+      name: petclinic-image
+  workspaces:
+  - name: local-config-source
+    persistentVolumeClaim:
+      claimName: config-source-pvc
+  params:
+  - name: IMAGE_TAG
+    value: 'hnkwj'

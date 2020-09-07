@@ -45,11 +45,20 @@ objects:
     name: petclinic-deploy-stage-tomcat
     namespace: ${PROJECT_NAME}
   spec:
+    workspaces:
+    - name: local-config-source
+    resources:
+      - name: app-image
+        type: image
     params:
       - name: IMAGE_TAG
         default: latest 
         type: string
         description: The image tag to be promoted from DEV to STAGE environment
+      - name: ARGO_CD_BRANCH
+        default: uat
+        type: string
+        description: The branch that ARGO CD is monitoring for gitops deployment
     tasks:
     - name: promote-stage
       taskRef:
@@ -69,3 +78,56 @@ objects:
 
             echo "Waiting for deployment to complete"
             oc rollout status deploy/${APP_NAME} -n ${STAGING_PROJECT}
+    - name: checkout-config
+      taskRef: 
+        name: git-clone
+      workspaces:
+      - name: output
+        workspace: local-config-source
+      params:
+      - name: url
+        value: 'http://gitea.petclinic-cicd:3000/gogs/petclinic-config.git'
+      - name: revision
+        value: $(params.ARGO_CD_BRANCH)
+      - name: deleteExisting
+        value: "true"
+      - name: subdirectory
+        value: ""
+    - name: patch-config
+      taskRef: 
+        name: update-config
+      runAfter:
+      - checkout-config
+      workspaces:
+      - name: input
+        workspace: local-config-source
+      resources:
+        inputs:
+        - name: app-image
+          resource: app-image 
+      params:
+      - name: IMAGE_TAG
+        value: $(params.IMAGE_TAG)
+      - name: PATH_CONTEXT
+        value: "."
+      - name: PATCH_FILE
+        value: "app/deployment.yaml"
+      - name: GIT_SECRET_NAME
+        value: "gitea-secret"
+      - name: BRANCH_SUFFIX
+        value: $(params.IMAGE_TAG)
+    - name: create-pull-request
+      taskRef:
+        name: create-pull-request
+      runAfter:
+        - patch-config
+      params:
+      - name: GIT_REPO_NAME
+        value: 'gogs/petclinic-config'
+      - name: SOURCE_BRANCH
+        value: $(tasks.patch-config.results.branch-name)
+      - name: TARGET_BRANCH
+        value: $(params.ARGO_CD_BRANCH)
+      - name: GIT_SECRET_NAME
+        value: 'gitea-secret'
+      
