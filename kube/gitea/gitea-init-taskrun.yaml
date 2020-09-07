@@ -1,23 +1,23 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: TaskRun
 metadata:
   generateName: init-gitea-
 spec:
   taskSpec:
-    inputs:
-      params:
-        - name: GOGS_USER
-          type: string
-          description: Gogs admin username
-          default: gogs
-        - name: GOGS_PASSWORD
-          type: string
-          description: Gogs admin password
-          default: gogs
-        - name: GITEA_SVC
-          description: The name of the Gitea k8 service
-          default: "mygitea"
-     stepTemplate:
+    params:
+      - name: GOGS_USER
+        type: string
+        description: Gogs admin username
+        default: gogs
+      - name: GOGS_PASSWORD
+        type: string
+        description: Gogs admin password
+        default: gogs
+      - name: GITEA_SVC
+        type: string
+        description: The name of the Gitea k8 service
+        default: gitea
+    stepTemplate:
       env:
         - name: NAMESPACE
           valueFrom:
@@ -31,8 +31,8 @@ spec:
 
           set -Eeuxo pipefail
 
-          #OUTPUT = $(oc exec svc/$(inputs.params.GITEA_SVC) -- /home/gitea/gitea -w /home/gitea/ -c /home/gitea/conf/app.ini admin create-user --username $(inputs.params.GOGS_USER) --password gogs --email gogs5@gogs.com --access-token)
-          oc exec svc/$(inputs.params.GITEA_SVC) -- /home/gitea/gitea -w /home/gitea/ -c /home/gitea/conf/app.ini admin create-user --username $(inputs.params.GOGS_USER) --password gogs --email $(inputs.params.GOGS_USER)@gogs.com \
+          #OUTPUT = $(oc exec svc/$(params.GITEA_SVC) -- /home/gitea/gitea -w /home/gitea/ -c /home/gitea/conf/app.ini admin create-user --username $(params.GOGS_USER) --password $(params.GOGS_PASSWORD) --email gogs@gogs.com --access-token)
+          oc exec svc/$(params.GITEA_SVC) -- /home/gitea/gitea -w /home/gitea/ -c /home/gitea/conf/app.ini admin create-user --username $(params.GOGS_USER) --password gogs --email $(params.GOGS_USER)@gogs.com \
             --must-change-password=false --access-token
           # TOKEN = $(grep "Access token" ${OUTPUT} | sed "s#Access token was successfully created... \(.*\)$#\1#")
 
@@ -50,16 +50,16 @@ spec:
           import os
           import requests 
 
-          gogs_user = "$(inputs.params.GOGS_USER)"
-          gogs_pwd = "$(inputs.params.GOGS_PASSWORD)"
+          gogs_user = "$(params.GOGS_USER)"
+          gogs_pwd = "$(params.GOGS_PASSWORD)"
           # FIXME: Webhook url could be the name of the svc with the port at the end
           webhookURL = "http://" + os.popen('oc get route webhook -o template --template="{{.spec.host}}"').read()
-          gogsURL = "http://" + gogs_user + ":" + gogs_pwd + "@" + os.popen('oc get svc $(inputs.params.GITEA_SVC) -o template --template="{{.spec.clusterIP}}"').read() + ":3000"
+          gogsURL = "http://" + gogs_user + ":" + gogs_pwd + "@" + os.popen('oc get svc $(params.GITEA_SVC) -o template --template="{{.spec.clusterIP}}"').read() + ":3000"
           print("Gogs url is: " + gogsURL)
 
           # create git repo
           data_repo = '{"clone_addr": "https://github.com/hatmarch/spring-framework-petclinic.git", "uid": 1, "repo_name": "spring-petclinic"}'
-          # headers = {"Authorization": "token $(inputs.params.TOKEN)", "Content-Type": "application/json" }
+          # headers = {"Authorization": "token ${TOKEN}", "Content-Type": "application/json" }
           headers = {"Content-Type": "application/json"}
           resp = requests.post(url = gogsURL + "/api/v1/repos/migrate", headers = headers, data = data_repo)  
 
