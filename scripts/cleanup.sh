@@ -81,6 +81,10 @@ main()
 
     get_and_validate_options "$@"
 
+    # delete argocd integration
+    echo "Deleting argocd integration app 'petclinic-argo'"
+    argocd app delete petclinic-argo || true
+
     # declare an array
     arrSuffix=( "dev" "stage" "cicd" "uat")
     

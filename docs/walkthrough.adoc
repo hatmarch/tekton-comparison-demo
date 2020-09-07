@@ -2,6 +2,7 @@
 :experimental:
 :toc:
 :toclevels: 4
+:imagesdir: images
 
 [WARNING]
 ====
@@ -118,6 +119,53 @@ $DEMO_HOME/scripts/walkthrough/port-forward.sh --stop
 . Look at the SonarQube integration
 
 . Look at the deploy to staging
+
+== Argo CD Integration ==
+
+[NOTE]
+====
+To show this standlone:
+
+. Go to this file (welcome.jsp) in the _spring-5.2.0_ branch of the internal gitea repo (_after signing into gitea_)
++
+image:gitea-edit.png[]
++
+. Edit the file using the pen icon.  Then checkin.  This will trigger a build.
+. Switch to the CICD pipeline run to show Tekton working
+. Wait to get the prompt in Slack
+====
+
+. Assuming you have gotten a trigger from Slack, click the "Promote to staging" deployment from Slack
+. Show the Pipeline Running
+. Open the ArgoCD control panel 
+.. Find the argocd dashboard by running this command
++
+----
+echo "https://$(oc get route argocd-server -n argocd -o jsonpath='{.spec.host}')/"
+----
++
+.. Login using Oauth
++
+.. Open the Petclinic cicd app
++
+image: argocd-dashboard.png[]
++
+. Show how the petclinic app is tied to the git repo by clicking `APP DETAILS`
++
+image: argo-app-details.png[]
++
+. Click the link to open the repo.
+. Return to the pipeline run and show the logs and notice last command that creates a pull request
+. Find the gitea repo url from the last lines of the pull request and open it in another tab
+image: gitea-config-repo.png[]
+. Select Pull requests
+. With Argo window and Tekton in view, select Merge Pull Request
+. Watch how argo syncs the app
+** NOTE: Can take up to 2 minutes to autosync
+image:argo-sync-progressing.png[]
+. Click on the route to see the Live Manifest and scroll down to the find the UAT URL
+. Paste that URL in another Tab and show that the welcome message is updated accordingly
+
 
 == Demo Setup ==
 

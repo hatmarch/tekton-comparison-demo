@@ -129,11 +129,6 @@ command.install() {
   oc import-image -n $cicd_prj tomcat8-builder --from=registry.redhat.io/jboss-webserver-3/webserver31-tomcat8-openshift:1.4 \
     --reference-policy='local' --confirm
 
-  info "Configure service account permissions for builder"
-  oc policy add-role-to-user system:image-puller system:serviceaccount:$dev_prj:builder -n $cicd_prj
-  oc policy add-role-to-user system:image-puller system:serviceaccount:$uat_prj:default -n $cicd_prj
-  oc policy add-role-to-user system:image-puller system:serviceaccount:$stage_prj:default -n $cicd_prj
- 
   info "Configure service account permissions for pipeline"
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $dev_prj
   oc policy add-role-to-user edit system:serviceaccount:$cicd_prj:pipeline -n $stage_prj
@@ -227,12 +222,12 @@ command.install() {
   oc expose deploy/petclinic --port=8080 -n $stage_prj
   oc expose svc/petclinic -n $stage_prj
 
-  echo "Setting permissions for service accounts into $cicd_prj"
-  arrPrjs=( $dev_prj $stage_prj $cicd_prj )
-  arrSAs=( default pipeline)
+  echo "Setting image-puller permissions for other projecct service accounts into $cicd_prj"
+  arrPrjs=( ${dev_prj} ${stage_prj} ${uat_prj} )
+  arrSAs=( default pipeline builder )
   for prj in "${arrPrjs[@]}"; do
     for sa in "${arrSAs[@]}"; do
-      oc adm policy add-role-to-user system:image-puller system:serviceaccount:$prj:$sa -n $cicd_prj
+      oc adm policy add-role-to-user system:image-puller system:serviceaccount:${prj}:${sa} -n ${cicd_prj}
     done
   done
 
