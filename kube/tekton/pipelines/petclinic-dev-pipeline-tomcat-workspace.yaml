@@ -14,7 +14,7 @@ spec:
     - name: GIT_REPO
       type: string
       description: The repo to check output
-      default: 'http://mygitea:3000/gogs/spring-petclinic.git'
+      default: 'http://gitea:3000/gogs/spring-petclinic.git'
     - name: GIT_REVISION
       type: string
       description: The branch to be built

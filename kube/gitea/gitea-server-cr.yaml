@@ -6,4 +6,4 @@ spec:
   postgresqlVolumeSize: 1Gi
   giteaVolumeSize: 1Gi
   giteaSsl: True
-  giteaServiceName: mygitea
+  giteaServiceName: gitea

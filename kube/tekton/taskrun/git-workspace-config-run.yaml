@@ -11,7 +11,7 @@ spec:
       claimName: config-source-pvc
   params:
   - name: url
-    value: 'http://gogs.petclinic-cicd:3000/gogs/petclinic-config.git'
+    value: 'http://gitea.petclinic-cicd:3000/gogs/petclinic-config.git'
   - name: revision
     value: 'uat'
   - name: message

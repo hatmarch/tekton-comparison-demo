@@ -142,8 +142,9 @@ command.install() {
   info "Deploying pipeline and tasks to $cicd_prj namespace"
   oc apply -f $DEMO_HOME/kube/tekton/tasks --recursive -n $cicd_prj
   oc apply -f $DEMO_HOME/kube/tekton/config -n $cicd_prj
-  oc apply -f $DEMO_HOME/kube/tekton/pipelines/pipeline-pvc.yaml -n $cicd_prj
-  oc apply -f $DEMO_HOME/kube/tekton/pipelines/pipeline-source-pvc.yaml -n $cicd_prj
+
+  info "Creating workspaces volumes in $cicd_prj namespace"
+  oc apply -R -f $DEMO_HOME/kube/tekton/workspaces -n $cicd_prj
   
   if [[ -z "${slack_webhook_url}" ]]; then
     info "NOTE: No slack webhook url is set.  You can add this later by running oc create secret generic slack-webhook-secret."
@@ -175,15 +176,15 @@ command.install() {
   oc apply -f $DEMO_HOME/kube/gitea/gitea-server-cr.yaml -n $cicd_prj
   oc wait --for=condition=Running Gitea/gitea-server -n $cicd_prj --timeout=6m
   echo -n "Waiting for gitea deployment to appear..."
-  while [[ -z "$(oc get deploy mygitea -n $cicd_prj 2>/dev/null)" ]]; do
+  while [[ -z "$(oc get deploy gitea -n $cicd_prj 2>/dev/null)" ]]; do
     echo -n "."
     sleep 1
   done
   echo "done!"
-  oc rollout status deploy/mygitea -n $cicd_prj
+  oc rollout status deploy/gitea -n $cicd_prj
 
   # patch the created gitea service to select the proper pod
- # oc patch svc/mygitea -p '{"spec":{"selector":{"app":"mygitea"}}}' -n $cicd_prj
+ # oc patch svc/gitea -p '{"spec":{"selector":{"app":"gitea"}}}' -n $cicd_prj
 
   oc create -f $DEMO_HOME/kube/gitea/gitea-init-taskrun.yaml -n $cicd_prj
   # output the logs of the latest task
@@ -243,7 +244,7 @@ command.install() {
 
   # FIXME: Shouldn't this line be codified in the gitops repo?  This might be necessary for bootstrapping, but after that...
   oc policy add-role-to-user edit system:serviceaccount:${ARGO_OPERATOR_PRJ}:argocd-application-controller -n $uat_prj
-  argocd app create petclinic-argo --repo http://mygitea.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $uat_prj --dest-server https://kubernetes.default.svc --directory-recurse --revision uat
+  argocd app create petclinic-argo --repo http://gitea.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $uat_prj --dest-server https://kubernetes.default.svc --directory-recurse --revision uat
   argocd app sync petclinic-argo
 
   echo "\n\nArgoCD URL: $argocd_url\nUser: admin\nPassword: $argocd_pwd"
