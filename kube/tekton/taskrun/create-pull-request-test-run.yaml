@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1beta1
+kind: TaskRun
+metadata:
+  generateName: create-pull-request-test-run-
+spec:
+  taskRef:
+    name: create-pull-request
+  params:
+  - name: GIT_REPO_NAME
+    value: 'gogs/petclinic-config'
+  - name: SOURCE_BRANCH
+    value: 'ci-hnkwj'
+  - name: TARGET_BRANCH
+    value: 'uat'
+  - name: GIT_SECRET_NAME
+    value: 'gitea-secret'
