@@ -141,7 +141,7 @@ command.install() {
   
   info "Deploying pipeline and tasks to $cicd_prj namespace"
   oc apply -f $DEMO_HOME/kube/tekton/tasks --recursive -n $cicd_prj
-  oc apply -f $DEMO_HOME/kube/tekton/config -n $cicd_prj
+  oc apply -R -f $DEMO_HOME/kube/tekton/config -n $cicd_prj
 
   info "Creating workspaces volumes in $cicd_prj namespace"
   oc apply -R -f $DEMO_HOME/kube/tekton/workspaces -n $cicd_prj

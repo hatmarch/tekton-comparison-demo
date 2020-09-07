@@ -16,6 +16,12 @@ spec:
         name: petclinic-image
   params:
   - name: IMAGE_TAG
-    value: '484nd'
-#   - name: PATH_CONTEXT
-#     value: 'uat'
+    value: 'hnkwj'
+  - name: PATH_CONTEXT
+    value: '.'
+  - name: PATCH_FILE
+    value: "app/deployment.yaml"
+  - name: GIT_SECRET_NAME
+    value: gitea-secret
+  - name: BRANCH_SUFFIX
+    value: 'hnkwj'

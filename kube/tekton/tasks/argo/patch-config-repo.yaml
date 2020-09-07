@@ -14,9 +14,33 @@ spec:
     - name: IMAGE_TAG
       default: latest 
     - name: PATH_CONTEXT
-      description: The location relative to the start of the input workspace where the root of the config repo is
-      default: "."
+      description: The location relative to the start of the input workspace where the root of the config repo is.  
+    - name: PATCH_FILE
+      description: The file to patch relative to the PATH_CONTEXT (e.g. app/deployment.yaml)
+      default: "app/deployment.yaml"
+    - name: BRANCH_SUFFIX
+      description: The name of the branch to create in the parent repo and push the changes into.  Branch will be in the form ci-BRANCH_SUFFIX
+      default: "test"
+    - name: GIT_SECRET_NAME
+      description: The name of the secret that allows us to push to the git repo (in git credential-store format).  Key should be git.store
+  results:
+    - name: branch-name
+      description: The name of the branch that the config changes were checked into (useful for creating pull request)
+  volumes:
+    - name: git-secret
+      secret:
+        secretName: $(params.GIT_SECRET_NAME)
   steps:
+    - name: checkout
+      workingDir: $(workspaces.input.path)/$(params.PATH_CONTEXT)
+      image: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:latest
+      script: |
+        set -euxo pipefail
+
+        BRANCH_NAME="ci-$(params.BRANCH_SUFFIX)"
+        git checkout -b ${BRANCH_NAME}
+
+        echo ${BRANCH_NAME} | tr -d "\n" | tee $(results.branch-name.path)
     - name: update-deployment
       workingDir: $(workspaces.input.path)/$(params.PATH_CONTEXT)
       image: quay.io/openshift/origin-cli:latest
@@ -25,10 +49,12 @@ spec:
 
         set -Eeuo pipefail
 
-        pwd
-
-        cd app
-        DEPLOY_FILE="deployment.yaml"
+        DEPLOY_FILE=$(params.PATCH_FILE)
+        if [[ ! -f ${DEPLOY_FILE} ]]; then
+          echo "ERROR: Could not find ${DEPLOY_FILE} at $(pwd)."
+          exit 1
+        fi
+        
         DEPLOY_CONTENTS=$(cat ${DEPLOY_FILE})
         echo "Contents of $(pwd)/deployment.yaml are: ${DEPLOY_CONTENTS}"
 
@@ -39,3 +65,22 @@ spec:
             '{"spec":{"template":{"spec":{"containers":[{"name":"petclinic", "env":[{"name":"VERSION", "value": "'"$(params.IMAGE_TAG) petclinic-uat"'"}]}]}}}}' > ${DEPLOY_FILE}
 
         echo "Contents after are: $(cat ${DEPLOY_FILE})"
+    - name: checkin
+      workingDir: $(workspaces.input.path)/$(params.PATH_CONTEXT)
+      volumeMounts:
+        - name: git-secret
+          mountPath: /var/run/secrets/git
+      image: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:latest
+      script: |
+        set -euxo pipefail
+
+        git config --global user.email "pipes@tekton.com"
+        git config --global user.name "Tekton Pipeline"
+
+        git config --global credential.helper 'store --file /var/run/secrets/git/git.store'
+        git add . 
+        git commit -m"Configuration Changes"
+        git push -u origin $(cat $(results.branch-name.path))
+
+        
+
