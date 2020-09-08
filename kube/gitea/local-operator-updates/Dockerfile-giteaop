@@ -1,0 +1,7 @@
+FROM quay.io/gpte-devops-automation/gitea-operator:v0.17
+
+USER root
+
+COPY config_map.j2 /opt/ansible/roles/gitea-ocp/templates/config_map.j2
+
+USER 1001

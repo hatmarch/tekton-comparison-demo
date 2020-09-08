@@ -84,6 +84,18 @@ spec:
           resp = requests.post(url = gogsURL + "/api/v1/repos/" + gogs_user + "/spring-petclinic/hooks", 
                               headers = headers, 
                               data = data_webhook) 
+          
+          if resp.status_code != 200 and resp.status_code != 201:
+            print("Error configuring the webhook (status code: {})".format(resp.status_code))
+            print(resp.content)
+          else:
+            print("Configured webhook: " + webhookURL)
+          
+          # configure argo webhook
+          data_webhook = '{"type": "gogs", "config": { "url": "https://argocd-server.argocd.svc.cluster.local/api/webhook", "content_type": "json"}, "events": ["push"], "active": true}'
+          resp = requests.post(url = gogsURL + "/api/v1/repos/" + gogs_user + "/petclinic-config/hooks", 
+                              headers = headers, 
+                              data = data_webhook) 
 
           if resp.status_code != 200 and resp.status_code != 201:
             print("Error configuring the webhook (status code: {})".format(resp.status_code))

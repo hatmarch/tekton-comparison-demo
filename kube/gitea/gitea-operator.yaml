@@ -15,7 +15,7 @@ spec:
       serviceAccountName: gitea-operator
       containers:
         - name: gitea-operator
-          image: quay.io/gpte-devops-automation/gitea-operator:v0.17
+          image: quay.io/mhildenb/gitea-operator:0.1
           imagePullPolicy: "Always"
           volumeMounts:
           - mountPath: /tmp/ansible-operator/runner
