@@ -5,13 +5,24 @@
 :imagesdir: images
 
 [WARNING]
-====
-Make sure you run the following command before executing any of these commands listed in this demo.
+****
+Make sure you commands in any shell prior to the demo from within the root of the git repo for this demo:
 
 ----
-source scripts/shell-setup.sh 
+docker run -it -v ~/.kube:/home/jboss/.kube -v ~/.oh-my-zsh:/home/jboss/.oh-my-zsh -v $(pwd):/workspaces/tekton-demo quay.io/mhildenb/tekton-demo-shell /bin/zsh
 ----
-====
+
+Then run the following commands within docker
+----
+cd /workspaces/tekton-demo
+. scripts/shell-setup.sh 
+----
+
+Setup your windows something like this:
+
+image:screen-setup.png[]
+
+****
 
 == Tasks and Task Run == 
 
@@ -148,16 +159,16 @@ echo "https://$(oc get route argocd-server -n argocd -o jsonpath='{.spec.host}')
 +
 .. Open the Petclinic cicd app
 +
-image: argocd-dashboard.png[]
+image:argocd-dashboard.png[]
 +
 . Show how the petclinic app is tied to the git repo by clicking `APP DETAILS`
 +
-image: argo-app-details.png[]
+image:argo-app-details.png[]
 +
 . Click the link to open the repo.
 . Return to the pipeline run and show the logs and notice last command that creates a pull request
 . Find the gitea repo url from the last lines of the pull request and open it in another tab
-image: gitea-config-repo.png[]
+image:gitea-config-repo.png[]
 . Select Pull requests
 . With Argo window and Tekton in view, select Merge Pull Request
 . Watch how argo syncs the app
