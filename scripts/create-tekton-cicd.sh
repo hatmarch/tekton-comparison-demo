@@ -243,7 +243,9 @@ command.install() {
   oc policy add-role-to-user edit system:serviceaccount:${ARGO_OPERATOR_PRJ}:argocd-application-controller -n $uat_prj
   argocd app create petclinic-argo --repo http://gitea.$cicd_prj:3000/gogs/petclinic-config --path . --dest-namespace $uat_prj --dest-server https://kubernetes.default.svc \
     --directory-recurse --revision uat --sync-policy automated --self-heal --auto-prune
-  argocd app sync petclinic-argo
+  
+  # NOTE: it's setup to autosync so this is not necessary
+  # argocd app sync petclinic-argo
 
   echo "\n\nArgoCD URL: $argocd_url\nUser: admin\nPassword: $argocd_pwd"
 
