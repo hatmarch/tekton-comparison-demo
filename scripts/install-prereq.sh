@@ -29,6 +29,7 @@ metadata:
   namespace: openshift-operators
 spec:
   channel: preview
+  installPlanApproval: Automatic
   name: openshift-pipelines-operator-rh
   source: redhat-operators
   sourceNamespace: openshift-marketplace
