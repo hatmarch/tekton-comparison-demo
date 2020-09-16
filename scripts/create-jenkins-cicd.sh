@@ -168,8 +168,8 @@ function deploy() {
   
   sleep 2
 
-  oc $ARG_OC_OPS policy add-role-to-group edit system:serviceaccounts:$cicd_prj -n $dev_prj
-  oc $ARG_OC_OPS policy add-role-to-group edit system:serviceaccounts:$cicd_prj -n $stage_prj
+  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:$cicd_prj:jenkins -n $dev_prj
+  oc $ARG_OC_OPS policy add-role-to-user edit system:serviceaccount:$cicd_prj:jenkins -n $stage_prj
 
   if [ $LOGGEDIN_USER == 'system:admin' ] ; then
     oc $ARG_OC_OPS adm policy add-role-to-user admin $ARG_USERNAME -n $dev_prj >/dev/null 2>&1

@@ -5,6 +5,7 @@ declare -r SCRIPT_DIR=$(cd -P $(dirname $0) && pwd)
 declare PRJ_PREFIX="petclinic"
 declare COMMAND="help"
 declare SKIP_STAGING_PIPELINE=""
+declare SKIP_JENKINS=""
 declare USER=""
 declare PASSWORD=""
 declare slack_webhook_url=""
@@ -51,6 +52,10 @@ while (( "$#" )); do
       SKIP_STAGING_PIPELINE=$1
       shift 1
       ;;
+    --skip-jenkins)
+      SKIP_JENKINS=$1
+      shift 1
+      ;;
     -i|--install-prereq)
       INSTALL_PREREQ=true
       shift 1
@@ -92,6 +97,7 @@ command.help() {
       --user [string]                User name for the Red Hat registry
       --password [string]            Password for the Red Hat registry
       -i|--install-prereq            Whether to install supporting operators and custom resources
+      --skip-jenkins                 Skip the installation of the Jenkins CI/CD plane
 EOF
 }
 
@@ -127,6 +133,11 @@ command.install() {
   # referencing this from outside this project don't need to have credentials to the source registry)
   info "import petclinic s2i image"
   oc import-image -n $cicd_prj tomcat8-builder --from=registry.redhat.io/jboss-webserver-3/webserver31-tomcat8-openshift:1.4 \
+    --reference-policy='local' --confirm
+
+  # Petclinic builder (leveraged by Jenkins and created image-stream referred to by the petclinic deployment)
+  oc new-build --name=petclinic --image-stream=$cicd_prj/tomcat8-builder --binary=true -n $cicd_prj
+  oc import-image -n $cicd_prj petclinic --from=quay.io/mhildenb/tekton-petclinic-initial:latest \
     --reference-policy='local' --confirm
 
   info "Configure service account permissions for pipeline"
@@ -197,9 +208,9 @@ command.install() {
 
   # Create the target apps
   # dev
-  # NOTE: new build not needed for Tekton, but for Jenkins
-  oc new-build --name=petclinic --image-stream=$cicd_prj/tomcat8-builder --binary=true -n $dev_prj
-  oc new-app petclinic --allow-missing-images -n $dev_prj
+  # Create a petclinic deployment based on the image stream in the CICD project (see above)
+  oc new-app --name=petclinic --allow-missing-images --image-stream=$cicd_prj/petclinic -n $dev_prj
+
   # NOTE: With the latest version of the oc client (4.5 and above) new-app creates deployments by default, which is what 
   # we want to happen here as the pipeline now depends on this behavior
   sleep 2
@@ -207,7 +218,6 @@ command.install() {
     echo "oc new-app did not create Deployments.  Update to latest version of openshift client"
     exit 1
   fi
-  oc expose deploy/petclinic --port=8080 -n $dev_prj
   oc expose svc/petclinic -n $dev_prj
   
   # stage
@@ -248,6 +258,14 @@ command.install() {
   # argocd app sync petclinic-argo
 
   echo "\n\nArgoCD URL: $argocd_url\nUser: admin\nPassword: $argocd_pwd"
+
+  # install jenkins (unless explicited told to skip)
+  if [[ -z "${SKIP_JENKINS}" ]]; then
+    echo "Installing Jenkins elements"
+    $SCRIPT_DIR/create-jenkins-cicd.sh deploy --project-prefix ${PRJ_PREFIX}
+  else
+    echo "Skipping Jenkins installation"
+  fi
 
   # Leave user in cicd project
   oc project $cicd_prj

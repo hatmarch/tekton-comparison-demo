@@ -39,7 +39,7 @@ parameters:
   required: true
 - description: Jenkins Gogs Repo name
   name: GOGS_REPO_NAME
-  value: "petclinic-jenkins"
+  value: "spring-petclinic"
   required: true
 - displayName: Integrate Quay.io
   description: Integrate image build and deployment with Quay.io 
@@ -122,7 +122,7 @@ objects:
               stage('Checkout') {
                 steps {
                   sh "rm -rf /tmp/build-app"
-                  git branch: 'spring-5.2.0', url: 'http://gogs:3000/gogs/${GOGS_REPO_NAME}.git'
+                  git branch: 'spring-5.2.0', url: 'http://gitea:3000/gogs/${GOGS_REPO_NAME}.git'
                 }
               }
 
@@ -185,7 +185,7 @@ objects:
                       // sh "cp target/openshift-tasks.war target/ROOT.war"
                       script {
                         openshift.withCluster() {
-                          openshift.withProject(env.DEV_PROJECT) {
+                          openshift.withProject(env.CICD_PROJECT) {
                             // NOTE that we are deploying a .war file we built in the first step and stored separately to 
                             // keep other maven operations from affecting it      
                             openshift.selector("bc", "petclinic").startBuild("--from-file=/tmp/build-app/ROOT.war", "--wait=true")
@@ -439,7 +439,7 @@ objects:
 
             # oc set resources dc/nexus --requests=cpu=200m,memory=1Gi --limits=cpu=2,memory=4Gi 
 
-            GOGS_SVC=$(oc get svc gogs -o template --template='{{.spec.clusterIP}}')
+            GOGS_SVC=$(oc get svc gitea -o template --template='{{.spec.clusterIP}}')
             GOGS_USER=gogs
             GOGS_PWD=gogs
 
@@ -461,26 +461,26 @@ objects:
               sleep 5
             done
 
-            sleep 10
+            # sleep 10
 
-            cat <<EOF > /tmp/data.json
-            {
-              "clone_addr": "https://github.com/hatmarch/spring-framework-petclinic.git",
-              "uid": 1,
-              "repo_name": "${GOGS_REPO_NAME}"
-            }
-            EOF
+            # cat <<EOF > /tmp/data.json
+            # {
+            #   "clone_addr": "https://github.com/hatmarch/spring-framework-petclinic.git",
+            #   "uid": 1,
+            #   "repo_name": "${GOGS_REPO_NAME}"
+            # }
+            # EOF
 
-            _RETURN=$(curl -o /tmp/curl.log -sL -w "%{http_code}" -H "Content-Type: application/json" \
-            -u $GOGS_USER:$GOGS_PWD -X POST http://$GOGS_SVC:3000/api/v1/repos/migrate -d @/tmp/data.json)
+            # _RETURN=$(curl -o /tmp/curl.log -sL -w "%{http_code}" -H "Content-Type: application/json" \
+            # -u $GOGS_USER:$GOGS_PWD -X POST http://$GOGS_SVC:3000/api/v1/repos/migrate -d @/tmp/data.json)
 
-            if [ $_RETURN != "201" ] ;then
-              echo "ERROR: Failed to import petclinic GitHub repo: ${GOGS_REPO_NAME}"
-              cat /tmp/curl.log
-              exit 255
-            fi
+            # if [ $_RETURN != "201" ] ;then
+            #   echo "ERROR: Failed to import petclinic GitHub repo: ${GOGS_REPO_NAME}"
+            #   cat /tmp/curl.log
+            #   exit 255
+            # fi
 
-            sleep 5
+            # sleep 5
 
             cat <<EOF > /tmp/data.json
             {
