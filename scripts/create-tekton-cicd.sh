@@ -218,6 +218,11 @@ command.install() {
     echo "oc new-app did not create Deployments.  Update to latest version of openshift client"
     exit 1
   fi
+
+  # If we don't remove the image.openshift.io/triggers annotation, then the deployment will act like a deployment 
+  # configuration and we won't be able to explicitly set the image on the container (which is how Jenkins and Tekton will do it)
+  oc annotate deploy/petclinic image.openshift.io/triggers- -n $dev_prj
+
   oc expose svc/petclinic -n $dev_prj
   
   # stage
