@@ -21,7 +21,7 @@ spec:
               name: slack-webhook-interceptor
               apiVersion: v1
       bindings:
-      - ref: slack-triggerbinding
+      - name: slack-triggerbinding
       template:
         name: slack-trigger-template
 ---
