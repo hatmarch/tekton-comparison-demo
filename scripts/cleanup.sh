@@ -108,7 +108,7 @@ main()
         oc delete project argocd || true
 
         # uninstall openshift pipelines
-        remove-operator openshift-pipelines-operator || true
+        remove-operator openshift-pipelines-operator-rh || true
     fi
 }
 
