@@ -137,11 +137,23 @@ $DEMO_HOME/scripts/walkthrough/port-forward.sh --stop
 ====
 To show this standlone:
 
-. Go to this file (welcome.jsp) in the _spring-5.2.0_ branch of the internal gitea repo (_after signing into gitea_)
+. Run this command to find the URL of the file we want to edit
++
+----
+GITEA_HOST=$(oc get route gitea -n $PROJECT_PREFIX-cicd -o jsonpath='{.spec.host}')
+echo "https://${GITEA_HOST}/gogs/spring-petclinic/_edit/spring-5.2.0/src/main/webapp/WEB-INF/jsp/welcome.jsp"
+----
++
+. Paste the link created from the previous command in your browswer
+. Log into Gitea if prompted:
+** *User*: gogs
+** *Pass*: gogs
+. You should arrive at the edit page for the `welcome.jsp` in the _spring-5.2.0_ branch of the internal gitea repo.  It should look something like this:
 +
 image:gitea-edit.png[]
 +
-. Edit the file using the pen icon.  Then checkin.  This will trigger a build.
+. Edit the file (change the header in some way)
+. Scroll to the bottom of the page to checkin.  This will trigger a build.
 . Switch to the CICD pipeline run to show Tekton working
 . Wait to get the prompt in Slack
 ====
