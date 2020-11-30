@@ -25,72 +25,35 @@ This repo contains all the scripts and code (as submodules) needed to create a d
 |S2I binary integration
 |===
 
-TIP: There is a .devcontainer in this repo so if you have VisualStudio Code with remote extensions enabled, you can open repo folder in a container that has all the tools necessary to run this demo already installed.
-
-_This demo is still a work in progress.  See <<Still To Come,here>> for a list of items that are as of yet unfinished_ 
-
-[WARNING]
-====
-Make sure you run the following command before executing any of these commands listed in this demo.
-
-----
-source scripts/shell-setup.sh 
-----
-====
+TIP: There is a .devcontainer in this repo so if you have VisualStudio Code with link:https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers[remote extensions] enabled, you can open repo folder in a container that has all the tools necessary to run this demo already installed.
 
 == Demo Setup ==
-
-=== OpenShift Pipelines (Tekton) ===
-
-Pipeline setup is inspired by this post link:https://developers.redhat.com/blog/2020/02/26/speed-up-maven-builds-in-tekton-pipelines/[here]
-
-From the instructions link:https://github.com/openshift/pipelines-tutorial/blob/master/install-operator.md[here]
-
-. Install subscription (in openshift operators)
-+
-----
-oc apply -f $DEMO_HOME/kube/tekton/tekton-subscription.yaml
-----
-+
-. Optionally install tekton dashboard (for visualization) as per link:https://github.com/tektoncd/dashboard[here]
-+
-----
-oc apply -f $DEMO_HOME/kube/tekton/openshift-tekton-dashboard-release.yaml --validate=false
-oc wait --for=condition=Available deployment/tekton-dashboard -n openshift-pipelines
-----
-+
-. Then you can open the dashboard by hitting this URL.  It will authenticate using OpenShift oauth
-+
-----
-echo "https://$(oc get route tekton-dashboard -o jsonpath='{.spec.host}' -n openshift-pipelines)/"
-----
-+
-. When the operator has finished installing, it will install a pipeline service account in all projects that have sufficient permissions to build stuff.  There is also a centralized openshift-pipelines project that holds pipeline supporting pods.  
-+
-NOTE: See also tips and tricks from the link:https://github.com/openshift/pipelines-tutorial[pipelines tutorial]
-
-=== Petclinic Tekton CI/CD ===
 
 NOTE: The script referenced is run during the link:docs/Walkthrough.adoc[Walkthrough].  This just gives a little more info if needed for troubleshooting
 
 A good example on how to get this running with SpringBoot is link:https://github.com/siamaksade/tekton-cd-demo[here].  This demo is heavily based on it.  link:https://developer.ibm.com/blogs/create-a-serverless-pipeline-using-newly-enhanced-tekton-features/[this] is also a good article about a number of Tekton features used in this demo (such as workspaces) including some others that aren't yet being used (e.g. conditions)
 
-Run the following script to setup the entire cicd project (it will create a project called `<PROJECT_PREFIX>-cicd` (where `<PROJECT_PREFIX>` is the value passed to --project-prefix in the command below) if it doesn't exist already to install all the artifacts into.
+Run the following script to setup the entire demo which includes a Tekton as well as a Jenkins pipeline for building a petclinic tomcat app.  Pipelines will be created a project called `$PROJECT_PREFIX-cicd` (where `$PROJECT_PREFIX` is as defined below).  The project will be created if it doesn't exist already.
 
+Finally, to minimize compatibility issues when installing from different OSes, the installation process should be run from inside a container.
+
+. If you are not using link:https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers[VSCode Remove Containers] then follow these steps to get a container running in which you'll issue all the following commands
+.. Change to the root of this repository
+.. Run the following command
++
 ----
-$DEMO_HOME/scripts/create-tekton-cicd.sh install --project-prefix petclinic --user USER --password <PASSWORD>
+docker run -it -v ~/.kube:/home/jboss/.kube -v ~/.oh-my-zsh:/home/jboss/.oh-my-zsh -v $(pwd):/workspaces/tekton-comparison-demo -w /workspaces/tekton-comparison-demo quay.io/mhildenb/tekton-demo-shell:latest /bin/zsh
 ----
-
-The `<USER>` and `<PASSWORD>` that is passed in is the user and password needed to create a pull secret for registry.redhat.io.  This is needed for the s2i images.  It will basically associate this secret with the pipelines service account.  NOTE: you can use a redhat registry server account name and password instead of your own login and password
-
-WARNING: This must be run *after* the corresponding development environment (e.g. petclinic-dev) has been created or the script will fail.  This is due to the cicd pipeline needing to update the permissions of the pipeline service account to be able to "see into and change" (e.g. edit) the dev project
-
-=== Petclinic Jenkins CI/CD ===
-
-Run this script after the the Tekton pipeline is setup
-
++
+. Setup the following variables in your environment (or in the currently running shell):
+** `PROJECT_PREFIX` this is set to `petclinic` by default, but you can override this to change the names of projects created
+** `SLACK_WEBHOOK` this is the webhook url to be used for triggering a "prompt to staging?" message to slack
+** `USER` this should be set to your RedHat access user name (used to create a pull secret for registry.redhat.io)
+** `PASSWORD` this should be set to your RedHat access password (used to create a pull secret for registry.redhat.io)
+. Run the following command to install the whole demo
+** NOTE: The `-i` flag indicates that all pre-requisites should be installed
 ----
-$DEMO_HOME/scripts/create-jenkins-cicd.sh deploy --project-prefix petclinic
+$DEMO_HOME/scripts/create-tekton-cicd.sh install --project-prefix $PROJECT_PREFIX -i --user $USER --password "$PASSWORD" --slack-webhook-url "$SLACK_WEBHOOK"
 ----
 
 == Troubleshooting ==
@@ -280,6 +243,36 @@ tkn pr logs -L -f
 ----
 
 == Appendix ==
+
+=== More about OpenShift Pipelines (Tekton) ===
+
+Pipeline setup is inspired by this post link:https://developers.redhat.com/blog/2020/02/26/speed-up-maven-builds-in-tekton-pipelines/[here]
+
+From the instructions link:https://github.com/openshift/pipelines-tutorial/blob/master/install-operator.md[here]
+
+. Install subscription (in openshift operators)
++
+----
+oc apply -f $DEMO_HOME/kube/tekton/tekton-subscription.yaml
+----
++
+. Optionally install tekton dashboard (for visualization) as per link:https://github.com/tektoncd/dashboard[here]
++
+----
+oc apply -f $DEMO_HOME/kube/tekton/openshift-tekton-dashboard-release.yaml --validate=false
+oc wait --for=condition=Available deployment/tekton-dashboard -n openshift-pipelines
+----
++
+. Then you can open the dashboard by hitting this URL.  It will authenticate using OpenShift oauth
++
+----
+echo "https://$(oc get route tekton-dashboard -o jsonpath='{.spec.host}' -n openshift-pipelines)/"
+----
++
+. When the operator has finished installing, it will install a pipeline service account in all projects that have sufficient permissions to build stuff.  There is also a centralized openshift-pipelines project that holds pipeline supporting pods.  
++
+NOTE: See also tips and tricks from the link:https://github.com/openshift/pipelines-tutorial[pipelines tutorial]
+
 
 === Still To Come ===
 
