@@ -1,4 +1,4 @@
-FROM quay.io/mhildenb/dev-demo-base:1.1
+FROM quay.io/mhildenb/dev-demo-base:1.3
 
 USER root
 
@@ -7,3 +7,9 @@ RUN curl -SL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releas
     chmod +x /usr/local/bin/argocd
 
 USER jboss
+
+# this is done in the base image already (to support the demo shell images too), but for those that make
+# local changes to .zshrc they should not have to rebuild the base
+COPY .zshrc.example $HOME/.zshrc
+
+ENV DEMO_HOME /workspaces/tekton-comparison-demo
