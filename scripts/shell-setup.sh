@@ -10,6 +10,7 @@ if [[ -z "${SCRIPT}" ]]; then
 fi
 
 export DEMO_HOME=$( cd "$(dirname "${SCRIPT}")/.." ; pwd -P )
+export PROJECT_PREFIX=petclinic
 
 alias cpr='tkn pr cancel $(tkn pr list -o name --limit 1 | cut -f 2 -d "/")'
 alias ctr='tkn tr cancel $(tkn tr list -o name --limit 1 | cut -f 2 -d "/")'
@@ -60,3 +61,7 @@ aws-down() {
     aws ec2 stop-instances --instance-ids --region ${AWS_REGION} \
         $(aws ec2 describe-instances --region ${AWS_REGION} --query 'Reservations[*].Instances[*].{Instance:InstanceId}' --output text --filters "Name=tag-key,Values=kubernetes.io/cluster/${CLUSTER_NAME}-*" "Name=instance-state-name,Values=running") 
 }
+
+echo "DEMO_HOME is $DEMO_HOME"
+echo "PROJECT_PREFIX is $PROJECT_PREFIX"
+echo "Welcome to the Tekton demo"
