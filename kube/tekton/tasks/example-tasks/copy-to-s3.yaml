@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: copy-to-s3
+spec:
+  params:
+  - name: AWS_SECRET_NAME
+    description: the name of the secret with AWS credentials
+  - name: REGION
+    description: The name of the AWS region to execute commands
+    default: ap-southeast-2
+  - name: CLAIM_NAME
+    description: The name of the PVC
+  - name: PATH_TO_SOURCE
+    description: The path to the source file to copy in the PVC
+  - name: SOURCE_FILE_NAME
+    description: The name of the source file
+  - name: S3_DESTINATION
+    description: S3 specified path to copy to
+  steps:
+  - name: copy-to-s3
+    image: quay.io/mhildenb/win-demo-base:latest
+    workingDir: /source-vol/$(params.PATH_TO_SOURCE)
+    script: |
+      #!/bin/zsh
+
+      echo "Home is $HOME and user is $(whoami)"
+      echo "Running aws command:"
+      aws s3 cp $(params.SOURCE_FILE_NAME) $(params.S3_DESTINATION)
+
+    env:
+    - name: REGION
+      value: $(params.REGION)
+    volumeMounts:
+    - name: aws-secret
+      mountPath: /tekton/home/.aws
+    - name: source-volume
+      mountPath: /source-vol
+  volumes:
+    - name: aws-secret
+      secret:
+          secretName: $(params.AWS_SECRET_NAME)
+    - name: source-volume
+      persistentVolumeClaim:
+          claimName: $(params.CLAIM_NAME)
