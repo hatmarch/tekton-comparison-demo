@@ -9,13 +9,7 @@
 Make sure you commands in any shell prior to the demo from within the root of the git repo for this demo:
 
 ----
-docker run -it -v ~/.kube:/home/jboss/.kube -v ~/.oh-my-zsh:/home/jboss/.oh-my-zsh -v $(pwd):/projects/tekton-demo quay.io/mhildenb/tekton-demo-shell /bin/zsh
-----
-
-Then run the following commands within docker
-----
-cd /projects/tekton-demo
-. scripts/shell-setup.sh 
+docker run -it -v ~/.kube:/home/jboss/.kube -v ~/.oh-my-zsh:/home/jboss/.oh-my-zsh -v $(pwd):/workspaces/tekton-demo -e DEMO_HOME=/workspaces/tekton-demo -w /workspaces/tekton-demo quay.io/mhildenb/tekton-demo-shell /bin/zsh
 ----
 
 Setup your windows something like this:
