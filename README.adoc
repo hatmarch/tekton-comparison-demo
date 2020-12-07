@@ -51,7 +51,7 @@ docker run -it -v ~/.kube:/home/jboss/.kube -v ~/.oh-my-zsh:/home/jboss/.oh-my-z
 ** `USER` this should be set to your RedHat access user name (used to create a pull secret for registry.redhat.io)
 ** `PASSWORD` this should be set to your RedHat access password (used to create a pull secret for registry.redhat.io)
 . Run the following command to install the whole demo
-** NOTE: The `-i` flag indicates that all pre-requisites should be installed
+** NOTE: The `-i` flag indicates that all pre-requisites should be installed (such as OpenShift Pipelines)
 ----
 $DEMO_HOME/scripts/create-tekton-cicd.sh install --project-prefix $PROJECT_PREFIX -i --user $USER --password "$PASSWORD" --slack-webhook-url "$SLACK_WEBHOOK"
 ----
@@ -168,45 +168,6 @@ rm -f /opt/webserver/webse*
 +
 . If all else fails, [blue]#you can run the tomcat server locally#.  
 
-
-=== OpenShift Nexus Installation ===
-
-The `$DEMO_HOME/scripts/create-cicd.sh` will create a Nexus instance within the `petclinic-cicd` project and will configure the repo accordingly so that the application can be built appropriately.  Should something go wrong, this section outlines steps that the script should have undertaken so that you can troubleshoot.
-
-image:images/nexus-maven-public.png[]
-
-The original petclinic app uses some repos outside of maven central.  Namely:
-
-* https://maven.repository.redhat.com/earlyaccess/all/
-* https://repo.spring.io/milestone/
-
-Here's how you would manually configure these in Nexus:
-
-. Connect to the nexus instance (see route) 
-+
-----
-echo "http://$(oc get route nexus -n petclinic-cicd -o jsonpath='{.spec.host}')/"
-----
-+
-. Log into the nexus instance (standard nexus setup has admin, admin123)
-+
-. Go to _Repositories_ and _Create Repository_ for each of the repos needed
-+
-image:images/nexus-repositories.png[]
-+
-.. Here's example configuration for each of the above
-+
-image:images/nexus-spring-repo.png[Spring]
-image:images/nexus-redhat.png[Red Hat]
-+
-. Add the two registries to the maven-public group as per the screenshot
-+
-[red]#FIXME: This is necessary until every build gets a semantic version number update#
-+
-. Update the `maven-releases` repo to allow updates like below:
-+
-image:images/nexus-repo-allow-redeploy.png[]
-
 === OpenShift Pipeline (Git) Triggers ===
 
 Tekton allows for `EventListeners`, `TriggerTemplates`, and `TriggerBindings` to allow a git repo to hit a webhook and trigger a build.  See also link:https://github.com/tektoncd/triggers[here].  To get basic triggers going for both gogs and github run the following:
@@ -273,11 +234,8 @@ echo "https://$(oc get route tekton-dashboard -o jsonpath='{.spec.host}' -n open
 +
 NOTE: See also tips and tricks from the link:https://github.com/openshift/pipelines-tutorial[pipelines tutorial]
 
+=== Slack Interceptor
 
-=== Still To Come ===
+The Slack integration that you find in link:../kube/tekton/triggers/slack/eventlistener-slack.yaml[this webhook] includes a webhook `Interceptor` that translates the form urlencoded output of the slack callback into a json document.
 
-. Programmatic creation of AWS Components (currently only Elastic Beanstalk supported).  See .json files link:aws[here]
-. Update OpenShift Pipeline UnitTest to use surefire:test goal for unit test (and allow viewing of report)
-. OpenShift pipeline to update version number of every build
-. Add a TaskRun that would support cleaning the maven build and/or deleting all build and package artifacts in the maven workspace
-. Update the OLM MySQL Operator to have a custom icon and reference relevant CRDs (like Cluster)
+In this demo this is deployed as a link:../kube/tekton/triggers/slack/slack-webhook-interceptor.yaml[service] that points to the container `quay.io/mhildenb/slack-webhook-interceptor:latest`.  You can find the code that backs that container link:https://github.com/hatmarch/slack-webhook-interceptor[here].  This is itself a fork of link:https://github.com/bigkevmcd/slack-webhook-interceptor[this repo].
