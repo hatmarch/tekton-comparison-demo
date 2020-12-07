@@ -72,6 +72,8 @@ spec:
           mountPath: /var/run/secrets/git
       image: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:latest
       script: |
+        #!/usr/bin/env sh
+
         set -euxo pipefail
 
         git config --global user.email "pipes@tekton.com"
