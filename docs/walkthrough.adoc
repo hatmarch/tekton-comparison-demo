@@ -424,13 +424,3 @@ To output the logs of a currently running pipelinerun (`pr`) and follow them, us
 ----
 tkn pr logs -L -f
 ----
-
-== Appendix ==
-
-=== Still To Come ===
-
-. Programmatic creation of AWS Components (currently only Elastic Beanstalk supported).  See .json files link:aws[here]
-. Update OpenShift Pipeline UnitTest to use surefire:test goal for unit test (and allow viewing of report)
-. OpenShift pipeline to update version number of every build
-. Add a TaskRun that would support cleaning the maven build and/or deleting all build and package artifacts in the maven workspace
-. Update the OLM MySQL Operator to have a custom icon and reference relevant CRDs (like Cluster)
