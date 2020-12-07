@@ -28,7 +28,7 @@ metadata:
   name: openshift-pipelines-operator-rh
   namespace: openshift-operators
 spec:
-  channel: ocp-4.5
+  channel: ocp-4.6
   installPlanApproval: Automatic
   name: openshift-pipelines-operator-rh
   source: redhat-operators
