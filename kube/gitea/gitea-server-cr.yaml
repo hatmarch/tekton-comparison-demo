@@ -7,3 +7,7 @@ spec:
   giteaVolumeSize: 1Gi
   giteaSsl: True
   giteaServiceName: gitea
+  # if these two lines are not provided then the "latest" of the gitea 
+  # image will be used and as of 7-12-2020 v1.13.0 was causing a problem with this demo
+  giteaImage: "quay.io/gpte-devops-automation/gitea"
+  giteaImageTag: "1.12.6"
