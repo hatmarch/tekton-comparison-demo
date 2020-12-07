@@ -82,4 +82,4 @@ spec:
 
         PULLREQUEST_API_URL="${BASE_URL}/api/v1/repos/$(params.GIT_REPO_NAME)/pulls"
 
-        curl -X POST -H "Content-Type: application/json" -d @"${PAYLOAD_FILE}" ${PULLREQUEST_API_URL}
+        curl -vvv -X POST -H "Content-Type: application/json" -d @"${PAYLOAD_FILE}" ${PULLREQUEST_API_URL}
