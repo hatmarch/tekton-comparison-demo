@@ -27,11 +27,11 @@ spec:
         name: petclinic-dev-pipeline-tomcat-workspace
       params:
       - name: GIT_REPO
-        value: $(params.gitrepositoryurl)
+        value: $(tt.params.gitrepositoryurl)
       - name: GIT_REVISION
-        value: $(params.gitrevision)
+        value: $(tt.params.gitrevision)
       - name: GIT_MESSAGE
-        value: $(params.message)
+        value: $(tt.params.message)
       resources:
       - name: app-image
         resourceRef:
