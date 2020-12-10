@@ -20,7 +20,7 @@ spec:
         name: petclinic-deploy-stage-tomcat
       params:
       - name: IMAGE_TAG
-        value: $(params.image-label)
+        value: $(tt.params.image-label)
       resources:
         - name: app-image
           resourceRef:
