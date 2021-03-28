@@ -23,9 +23,12 @@ spec:
     default: []
   steps:
     - name: mvn
-      image: quay.io/mhildenb/jboss-webserver31-tomcat8-openshift-base:1.0
+# NOTE: Cloud builder images are updated all the time.  This is pegged to a version of the cloud builder but if this version ever disappears
+# From the registry, this command can be used instead with "./mvnw" as the command
+#      image: quay.io/mhildenb/jboss-webserver31-tomcat8-openshift-base:1.0
+      image: gcr.io/cloud-builders/mvn@sha256:15f5ce4d096ec336be3dbada0b0901bbfd92fb8760bb67bcc933da08faf231ed
       workingDir: $(workspaces.maven-source.path)
-      command: ["./mvnw"]
+      command: [/usr/bin/mvn]
       args:
         - -Dmaven.repo.local=$(workspaces.maven-repo.path)
         - -Dsonar.host.url=$(params.SONAR_URL)
