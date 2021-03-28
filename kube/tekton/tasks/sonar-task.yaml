@@ -23,18 +23,18 @@ spec:
     default: []
   steps:
     - name: mvn
-      image: gcr.io/cloud-builders/mvn
+      image: quay.io/mhildenb/jboss-webserver31-tomcat8-openshift-base:1.0
       workingDir: $(workspaces.maven-source.path)
-      command: ["/usr/bin/mvn"]
+      command: ["./mvnw"]
       args:
         - -Dmaven.repo.local=$(workspaces.maven-repo.path)
+        - -Dsonar.host.url=$(params.SONAR_URL)
+        - -Dsonar.userHome=/tmp/sonar
+        - -DskipTests
         - -s
         - /var/config/settings.xml
         - install
         - sonar:sonar
-        - -Dsonar.host.url=$(params.SONAR_URL)
-        - -Dsonar.userHome=/tmp/sonar
-        - -DskipTests
         - $(params.MAVEN_PARAMETERS)
       volumeMounts:
         - name: maven-settings
