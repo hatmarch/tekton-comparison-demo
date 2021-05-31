@@ -84,6 +84,10 @@ main()
     # delete argocd integration
     echo "Deleting argocd integration app 'petclinic-argo'"
     argocd app delete petclinic-argo || true
+    
+    echo "Deleting any remaining argocd applications before deleting namespace and CRDs"
+    oc delete application --all -n argocd || true
+    oc delete argocd --all -n argocd || true
 
     # declare an array
     arrSuffix=( "dev" "stage" "cicd" "uat")
