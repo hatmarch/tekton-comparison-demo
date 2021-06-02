@@ -23,7 +23,7 @@ spec:
       bindings:
       - ref: slack-triggerbinding
       template:
-        name: slack-trigger-template
+        ref: slack-trigger-template
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -32,10 +32,10 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: EventListener
     app.kubernetes.io/part-of: Triggers
-    eventlistener: webhook
+    eventlistener: webhook-slack
 spec:
   port:
-    targetPort: 8080
+    targetPort: http-listener
   to:
     kind: "Service"
     name: el-webhook-slack
